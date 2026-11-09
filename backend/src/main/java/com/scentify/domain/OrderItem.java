@@ -1,4 +1,4 @@
-package main.java.com.scentify.domain;
+package com.scentify.domain;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -34,9 +34,23 @@ public class OrderItem {
     this.unitPrice = unitPrice;
   }
 
-  public Long getId() { return id; }
-  public Order getOrder() { return order; }
-  public String getProductName() { return productName; }
-  public int getQuantity() { return quantity; }
-  public BigDecimal getUnitPrice() { return unitPrice; }
+  public Long getId() {
+    return id;
+  }
+
+  public Order getOrder() {
+    return order;
+  }
+
+  public String getProductName() {
+    return productName;
+  }
+
+  public int getQuantity() {
+    return quantity;
+  }
+
+  public BigDecimal getUnitPrice() {
+    return unitPrice;
+  }
 }

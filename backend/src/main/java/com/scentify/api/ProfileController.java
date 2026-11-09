@@ -1,4 +1,4 @@
-package main.java.com.scentify.api;
+package com.scentify.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

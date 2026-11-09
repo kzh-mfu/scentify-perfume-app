@@ -1,4 +1,5 @@
-package main.java.com.scentify.repository;
+package com.scentify.repository;
+
 import com.scentify.domain.Profile;
 import org.springframework.data.jpa.repository.JpaRepository;
 

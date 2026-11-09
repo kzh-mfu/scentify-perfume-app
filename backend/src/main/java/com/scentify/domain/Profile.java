@@ -1,4 +1,4 @@
-package main.java.com.scentify.domain;
+package com.scentify.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
