@@ -1,7 +1,3 @@
-/*
- * Team member: Kyaw Zin Htike (6831503011)
- * Entity tasks: listing/searching, creating, updating, and deleting ingredients.
- */
 package com.scentify.domain;
 
 import java.time.LocalDateTime;
@@ -12,6 +8,11 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+
+/*
+ * Team member: Kyaw Zin Htike (6831503011)
+ * Entity tasks: listing/searching, creating, updating, and deleting ingredients.
+ */
 
 @Entity
 @Table(name = "ingredients")
