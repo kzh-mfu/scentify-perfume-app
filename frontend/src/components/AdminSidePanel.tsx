@@ -12,6 +12,21 @@ import {
   Database,
   ArrowRight,
   ShieldAlert,
+  Package,
+  ShoppingBag,
+  Clock,
+  AlertTriangle,
+  Search,
+  Filter,
+  Eye,
+  EyeOff,
+  Edit,
+  Truck,
+  FileText,
+  Camera,
+  RefreshCw,
+  Check,
+  X,
 } from 'lucide-react';
 
 import {
@@ -57,6 +72,10 @@ interface AdminSidePanelProps {
   bottles?: BottleOption[];
   masterFormulas?: MasterFormula[];
   onSwitchToStorefront?: () => void;
+  onConfirmOrder?: (orderId: number) => void | Promise<void>;
+  onCancelOrder?: (orderId: number) => void | Promise<void>;
+  onUpdateOrderStatus?: (orderId: number, status: DbOrder['status']) => void | Promise<void>;
+  onVerifyPayment?: (paymentId: number, orderId: number) => void | Promise<void>;
 }
 
 export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
@@ -73,6 +92,10 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
   orderItems: propOrderItems,
   bottles: propBottles,
   masterFormulas: propMasterFormulas,
+  onConfirmOrder,
+  onCancelOrder,
+  onUpdateOrderStatus,
+  onVerifyPayment,
   onSwitchToStorefront,
 }) => {
   // Navigation Tabs
@@ -364,9 +387,211 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
     showToast(`Sales Report exported successfully: ${rows.length} rows.`);
   };
 
+  // Orders Filter & Modal State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'pending' | 'processing' | 'completed' | 'cancelled'
+  >('all');
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'verified' | 'pending' | 'failed'>(
+    'all'
+  );
+  const [selectedOrder, setSelectedOrder] = useState<EnrichedOrder | null>(null);
+  const [isEditingShipping, setIsEditingShipping] = useState(false);
+  const [shippingForm, setShippingForm] = useState<{ courier: string; tracking: string }>({
+    courier: '',
+    tracking: '',
+  });
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // -------------------------------------------------------------
+  // FILTERED ORDERS FOR ORDERS TAB
+  // -------------------------------------------------------------
+  const filteredOrders = useMemo(() => {
+    return enrichedOrders.filter((eo) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        eo.order.order_id.toString().includes(q) ||
+        eo.user.name.toLowerCase().includes(q) ||
+        eo.user.email.toLowerCase().includes(q) ||
+        eo.shipping.tracking_number.toLowerCase().includes(q) ||
+        eo.shipping.courier_name.toLowerCase().includes(q);
+
+      const matchStatus = statusFilter === 'all' || eo.order.status === statusFilter;
+      const matchPayment = paymentFilter === 'all' || eo.payment.status === paymentFilter;
+
+      return matchSearch && matchStatus && matchPayment;
+    });
+  }, [enrichedOrders, searchQuery, statusFilter, paymentFilter]);
+
+  // -------------------------------------------------------------
+  // ORDER STATUS / PAYMENT / SHIPPING / PREP PHOTO
+  // -------------------------------------------------------------
+  const handleUpdateOrderStatus = async (orderId: number, newStatus: DbOrder['status']) => {
+    try {
+      await onUpdateOrderStatus?.(orderId, newStatus);
+    } catch (error) {
+      console.error('Failed to update order status:', error);
+      showToast(error instanceof Error ? error.message : 'Order status could not be saved.');
+      return;
+    }
+
+    setOrders((prev) =>
+      prev.map((ord) => (ord.order_id === orderId ? { ...ord, status: newStatus } : ord))
+    );
+    showToast(`Order #${orderId} status set to "${newStatus.toUpperCase()}"`);
+
+    if (selectedOrder && selectedOrder.order.order_id === orderId) {
+      setSelectedOrder((prev) =>
+        prev ? { ...prev, order: { ...prev.order, status: newStatus } } : null
+      );
+    }
+  };
+
+  const handleVerifyPayment = async (paymentId: number, orderId: number) => {
+    const now = new Date().toISOString();
+    try {
+      await onVerifyPayment?.(paymentId, orderId);
+    } catch (error) {
+      console.error('Failed to verify payment:', error);
+      showToast(error instanceof Error ? error.message : 'Payment verification could not be saved.');
+      return;
+    }
+
+    setPayments((prev) =>
+      prev.map((p) =>
+        p.payment_id === paymentId ? { ...p, status: 'verified', verified_at: now } : p
+      )
+    );
+    showToast(`PromptPay payment verified for Order #${orderId}`);
+
+    if (selectedOrder && selectedOrder.payment.payment_id === paymentId) {
+      setSelectedOrder((prev) =>
+        prev
+          ? {
+              ...prev,
+              payment: { ...prev.payment, status: 'verified', verified_at: now },
+            }
+          : null
+      );
+    }
+  };
+
+  const handleConfirmOrder = async (orderId: number) => {
+    const now = new Date().toISOString();
+    try {
+      if (onConfirmOrder) {
+        await onConfirmOrder(orderId);
+      } else {
+        await handleVerifyPayment(1_000_000 + orderId, orderId);
+        await handleUpdateOrderStatus(orderId, 'processing');
+      }
+    } catch (error) {
+      console.error('Failed to confirm order:', error);
+      showToast(error instanceof Error ? error.message : 'Order confirmation could not be saved.');
+      return;
+    }
+
+    setOrders((prev) =>
+      prev.map((ord) => (ord.order_id === orderId ? { ...ord, status: 'processing' } : ord))
+    );
+    setPayments((prev) =>
+      prev.map((p) =>
+        p.order_id === orderId ? { ...p, status: 'verified', verified_at: now } : p
+      )
+    );
+
+    if (selectedOrder && selectedOrder.order.order_id === orderId) {
+      setSelectedOrder((prev) =>
+        prev
+          ? {
+              ...prev,
+              order: { ...prev.order, status: 'processing' },
+              payment: { ...prev.payment, status: 'verified', verified_at: now },
+            }
+          : null
+      );
+    }
+
+    showToast(`Order #${orderId} verified and advanced to PREPARATION!`);
+  };
+
+  const handleCancelOrder = async (orderId: number) => {
+    try {
+      await onCancelOrder?.(orderId);
+    } catch (error) {
+      console.error('Failed to cancel order:', error);
+      showToast(error instanceof Error ? error.message : 'Order cancellation could not be saved.');
+      return;
+    }
+
+    setOrders((prev) =>
+      prev.map((ord) => (ord.order_id === orderId ? { ...ord, status: 'cancelled' } : ord))
+    );
+    setPayments((prev) =>
+      prev.map((p) => (p.order_id === orderId ? { ...p, status: 'failed' } : p))
+    );
+
+    if (selectedOrder && selectedOrder.order.order_id === orderId) {
+      setSelectedOrder((prev) =>
+        prev
+          ? {
+              ...prev,
+              order: { ...prev.order, status: 'cancelled' },
+              payment: { ...prev.payment, status: 'failed' },
+            }
+          : null
+      );
+    }
+
+    showToast(`Order #${orderId} cancelled by Admin.`);
+  };
+
+  const handleSaveShipping = (shippingId: number) => {
+    setShippings((prev) =>
+      prev.map((s) =>
+        s.shipping_id === shippingId
+          ? {
+              ...s,
+              courier_name: shippingForm.courier || s.courier_name,
+              tracking_number: shippingForm.tracking || s.tracking_number,
+            }
+          : s
+      )
+    );
+    setIsEditingShipping(false);
+    showToast('Shipping courier and tracking details updated.');
+
+    if (selectedOrder && selectedOrder.shipping.shipping_id === shippingId) {
+      setSelectedOrder((prev) =>
+        prev
+          ? {
+              ...prev,
+              shipping: {
+                ...prev.shipping,
+                courier_name: shippingForm.courier || prev.shipping.courier_name,
+                tracking_number: shippingForm.tracking || prev.shipping.tracking_number,
+              },
+            }
+          : null
+      );
+    }
+  };
+
+  const handleSetPrepPhoto = (orderId: number, photoUrl: string) => {
+    setOrders((prev) =>
+      prev.map((ord) => (ord.order_id === orderId ? { ...ord, prep_photo_url: photoUrl } : ord))
+    );
+    showToast(`Preparation flacon photo assigned to Order #${orderId}`);
+    if (selectedOrder && selectedOrder.order.order_id === orderId) {
+      setSelectedOrder((prev) =>
+        prev ? { ...prev, order: { ...prev.order, prep_photo_url: photoUrl } } : null
+      );
+    }
+  };
+
   return (
     <>
-      {/* ========================================================================= */}
       {/* SALES & REPORTS STUDIO WITH DYNAMIC RANGE SELECTION & DOWNLOAD */}
       {/* ========================================================================= */}
       {activeTab === 'sales' && (
@@ -684,6 +909,335 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
           </div>
         </div>
       )}
+
+      {/* TAB 2: ORDER MANAGEMENT & VERIFICATION */}
+      {/* ========================================================================= */}
+      {activeTab === 'orders' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+
+          {/* Filter toolbar */}
+          <div className="bg-[#FBF7F0] border border-[#DAD1C5] p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-xs">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-[#6B6166] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search orders by ID, customer name, email, courier tracking..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-[#FBF7F0] border border-[#DAD1C5] pl-9 pr-4 py-2 text-xs text-[#28192A] focus:outline-none focus:border-[#C9A25C]"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+                className="bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A]"
+              >
+                <option value="all">All Order Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+
+              <select
+                value={paymentFilter}
+                onChange={(e) => setPaymentFilter(e.target.value as any)}
+                className="bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A]"
+              >
+                <option value="all">All Payments</option>
+                <option value="verified">Verified</option>
+                <option value="pending">Pending Slip</option>
+                <option value="failed">Failed</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Orders list */}
+          <div className="bg-[#FBF7F0] border border-[#DAD1C5] overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-[#FBF7F0] border-b border-[#DAD1C5] text-[10px] font-mono uppercase tracking-wider text-[#6B6166]">
+                    <th className="py-3.5 px-4">Order ID</th>
+                    <th className="py-3.5 px-4">Date</th>
+                    <th className="py-3.5 px-4">Customer</th>
+                    <th className="py-3.5 px-4">Formula</th>
+                    <th className="py-3.5 px-4">Status</th>
+                    <th className="py-3.5 px-4">PromptPay</th>
+                    <th className="py-3.5 px-4">Total</th>
+                    <th className="py-3.5 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-[#DAD1C5]/40 font-light">
+                  {filteredOrders.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-12 text-center text-[#6B6166]">
+                        No orders found matching the filter criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredOrders.map((eo) => (
+                      <tr key={eo.order.order_id} className="hover:bg-[#FBF7F0]/60 transition-colors">
+                        <td className="py-3.5 px-4 font-mono font-medium text-[#28192A]">
+                          #{eo.order.order_id}
+                        </td>
+                        <td className="py-3.5 px-4 text-[#6B6166]">
+                          {new Date(eo.order.order_date).toLocaleDateString()}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="font-medium text-[#28192A] block">{eo.user.name}</span>
+                          <span className="text-[10px] text-[#6B6166]">{eo.user.phone}</span>
+                        </td>
+                        <td className="py-3.5 px-4 font-serif text-[#28192A]">
+                          {eo.items[0]?.formula_name || 'Bespoke Blend'}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span
+                            className={`inline-block px-2 py-0.5 text-[9px] uppercase font-mono tracking-wider ${
+                              eo.order.status === 'completed'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : eo.order.status === 'processing'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : eo.order.status === 'cancelled'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-zinc-100 text-zinc-800'
+                            }`}
+                          >
+                            {eo.order.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span
+                            className={`inline-block px-2 py-0.5 text-[9px] uppercase font-mono tracking-wider ${
+                              eo.payment.status === 'verified'
+                                ? 'bg-emerald-100 text-emerald-800 font-medium'
+                                : eo.payment.status === 'failed'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-amber-100 text-amber-800'
+                            }`}
+                          >
+                            {eo.payment.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 font-mono font-medium text-[#28192A]">
+                          ฿{eo.order.total_price.toLocaleString()}
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {eo.payment.status === 'pending' && (
+                              <button
+                                onClick={() => handleConfirmOrder(eo.order.order_id)}
+                                className="px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] uppercase font-mono transition-colors"
+                                title="Verify Slip & Confirm Order"
+                              >
+                                Verify
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                setSelectedOrder(eo);
+                                setShippingForm({
+                                  courier: eo.shipping.courier_name,
+                                  tracking: eo.shipping.tracking_number,
+                                });
+                              }}
+                              className="px-2 py-1 bg-[#28192A] hover:bg-[#3D2540] text-[#FBF7F0] text-[10px] uppercase font-mono transition-colors"
+                            >
+                              View
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ORDER DETAILS DRAWER */}
+      {/* ========================================================================= */}
+      {selectedOrder && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FBF7F0] border border-[#DAD1C5] max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto animate-in zoom-in-95">
+
+            <div className="flex items-center justify-between pb-3 border-b border-[#DAD1C5] mb-5">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-[#C9A25C]">
+                  Order #{selectedOrder.order.order_id}
+                </span>
+                <h3 className="font-serif text-2xl text-[#28192A]">
+                  Order &amp; Formulation Details
+                </h3>
+              </div>
+              <button onClick={() => setSelectedOrder(null)} className="text-[#6B6166]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Customer & Shipping Details */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[#FBF7F0] p-4 border border-[#DAD1C5]/50 mb-5 text-xs">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-[#6B6166] block mb-1">
+                  Customer
+                </span>
+                <div className="font-medium text-[#28192A]">{selectedOrder.user.name}</div>
+                <div className="text-[#6B6166]">{selectedOrder.user.email}</div>
+                <div className="text-[#6B6166]">{selectedOrder.user.phone}</div>
+              </div>
+
+              <div>
+                <span className="text-[10px] uppercase font-bold text-[#6B6166] block mb-1">
+                  Shipping Destination
+                </span>
+                <div className="text-[#28192A] font-light leading-relaxed">
+                  {selectedOrder.shipping.shipping_address}
+                </div>
+                <div className="mt-1 text-[11px] font-mono text-[#C9A25C]">
+                  Courier: {selectedOrder.shipping.courier_name} · Track: {selectedOrder.shipping.tracking_number}
+                </div>
+              </div>
+            </div>
+
+            {/* Items */}
+            <div className="space-y-3 mb-5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#28192A] block">
+                Formulated Items
+              </span>
+              {selectedOrder.items.map((it, idx) => (
+                <div
+                  key={idx}
+                  className="bg-[#FBF7F0] border border-[#DAD1C5] p-3.5 flex items-center justify-between text-xs"
+                >
+                  <div>
+                    <h4 className="font-serif text-base text-[#28192A] font-medium">
+                      {it.formula_name}
+                    </h4>
+                    <span className="text-[#6B6166] text-[11px]">
+                      {it.bottle?.size || 50} ml Vessel · Quantity: {it.qty}
+                    </span>
+                  </div>
+                  <span className="font-mono font-semibold text-[#28192A]">
+                    ฿{(it.price * it.qty).toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* PromptPay Slip Section */}
+            {selectedOrder.payment.qr_receipt_url && (
+              <div className="border border-[#DAD1C5] p-4 mb-5 bg-[#FBF7F0]">
+                <span className="text-xs font-semibold uppercase text-[#28192A] block mb-2">
+                  PromptPay Transfer Slip
+                </span>
+                <div className="flex items-center gap-4">
+                  <img
+                    src={selectedOrder.payment.qr_receipt_url}
+                    alt="Payment Slip"
+                    className="w-20 h-20 object-contain border border-[#DAD1C5] bg-white cursor-pointer hover:opacity-90"
+                    onClick={() => setPreviewImage(selectedOrder.payment.qr_receipt_url)}
+                  />
+                  <div>
+                    <span className="text-xs text-[#6B6166] block">
+                      Status: <strong className="uppercase">{selectedOrder.payment.status}</strong>
+                    </span>
+                    {selectedOrder.payment.status === 'pending' && (
+                      <button
+                        onClick={() => handleConfirmOrder(selectedOrder.order.order_id)}
+                        className="mt-2 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium"
+                      >
+                        Verify Slip &amp; Advance
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Shipping Tracking Update Form */}
+            <div className="border border-[#DAD1C5] p-4 mb-5 bg-[#FBF7F0]">
+              <span className="text-xs font-semibold uppercase text-[#28192A] block mb-2">
+                Courier &amp; Tracking Update
+              </span>
+              <div className="grid grid-cols-2 gap-3 text-xs mb-2">
+                <input
+                  type="text"
+                  placeholder="Courier (e.g. DHL Express)"
+                  value={shippingForm.courier}
+                  onChange={(e) => setShippingForm({ ...shippingForm, courier: e.target.value })}
+                  className="bg-[#FBF7F0] border border-[#DAD1C5] px-2.5 py-1.5"
+                />
+                <input
+                  type="text"
+                  placeholder="Tracking Number"
+                  value={shippingForm.tracking}
+                  onChange={(e) => setShippingForm({ ...shippingForm, tracking: e.target.value })}
+                  className="bg-[#FBF7F0] border border-[#DAD1C5] px-2.5 py-1.5"
+                />
+              </div>
+              <button
+                onClick={() => handleSaveShipping(selectedOrder.shipping.shipping_id)}
+                className="px-3 py-1.5 bg-[#28192A] text-[#FBF7F0] text-xs font-medium"
+              >
+                Save Courier Details
+              </button>
+            </div>
+
+            {/* Quick Status Adjustments */}
+            <div className="flex items-center justify-between pt-4 border-t border-[#DAD1C5]/40 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-[#6B6166]">Status:</span>
+                <button
+                  onClick={() => handleUpdateOrderStatus(selectedOrder.order.order_id, 'processing')}
+                  className="px-2 py-1 bg-amber-100 text-amber-800 uppercase font-mono font-bold text-[10px]"
+                >
+                  Set Processing
+                </button>
+                <button
+                  onClick={() => handleUpdateOrderStatus(selectedOrder.order.order_id, 'completed')}
+                  className="px-2 py-1 bg-emerald-100 text-emerald-800 uppercase font-mono font-bold text-[10px]"
+                >
+                  Set Completed
+                </button>
+                <button
+                  onClick={() => handleCancelOrder(selectedOrder.order.order_id)}
+                  className="px-2 py-1 bg-red-100 text-red-800 uppercase font-mono font-bold text-[10px]"
+                >
+                  Cancel Order
+                </button>
+              </div>
+
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="px-4 py-1.5 border border-[#DAD1C5] text-[#28192A]"
+              >
+                Close
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Slip Image Full Preview Modal */}
+      {previewImage && (
+        <div
+          onClick={() => setPreviewImage(null)}
+          className="fixed inset-0 z-60 bg-black/80 flex items-center justify-center p-4 cursor-pointer"
+        >
+          <img
+            src={previewImage}
+            alt="Full Slip Preview"
+            className="max-w-md max-h-[85vh] object-contain border-2 border-white shadow-2xl"
+          />
+        </div>
+      )}
+
     </>
   );
 };
