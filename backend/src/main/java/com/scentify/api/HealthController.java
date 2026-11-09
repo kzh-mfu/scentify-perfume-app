@@ -1,3 +1,4 @@
+package com.scentify.api;
 
 import java.util.Map;
 
