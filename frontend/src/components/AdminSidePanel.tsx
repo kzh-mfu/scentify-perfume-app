@@ -27,6 +27,13 @@ import {
   RefreshCw,
   Check,
   X,
+  Plus,
+Trash2,
+FlaskConical,
+Sparkles,
+ToggleLeft,
+ToggleRight,
+Tag,
 } from 'lucide-react';
 
 import {
@@ -41,6 +48,8 @@ import {
   EnrichedOrder,
   BottleOption,
   MasterFormula,
+  ScentFamily,
+  Ingredient,
 } from '../types';
 
 import {
@@ -76,6 +85,9 @@ interface AdminSidePanelProps {
   onCancelOrder?: (orderId: number) => void | Promise<void>;
   onUpdateOrderStatus?: (orderId: number, status: DbOrder['status']) => void | Promise<void>;
   onVerifyPayment?: (paymentId: number, orderId: number) => void | Promise<void>;
+  onUpdateBottles?: (bottles: BottleOption[]) => void;
+  scentFamilies?: ScentFamily[];
+  onUpdateScentFamilies?: (families: ScentFamily[]) => void;
 }
 
 export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
@@ -97,6 +109,9 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
   onUpdateOrderStatus,
   onVerifyPayment,
   onSwitchToStorefront,
+  onUpdateBottles,
+  scentFamilies: propScentFamilies,
+  onUpdateScentFamilies,
 }) => {
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState<
@@ -588,6 +603,300 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
         prev ? { ...prev, order: { ...prev.order, prep_photo_url: photoUrl } } : null
       );
     }
+  };
+
+  // -------------------------------------------------------------
+  // BOTTLE & PRICING MODAL STATE
+  // -------------------------------------------------------------
+  const [isBottleModalOpen, setIsBottleModalOpen] = useState(false);
+  const [isSavingAdmin, setIsSavingAdmin] = useState(false);
+  const [editingBottle, setEditingBottle] = useState<BottleOption | null>(null);
+  const [bottleForm, setBottleForm] = useState({
+    size: '',
+    volume: 50,
+    price: 1680,
+    bottleType: 'Classic Flacon',
+    description: '',
+    inStock: true,
+  });
+
+
+  // -------------------------------------------------------------
+  // INGREDIENT & SCENT CATEGORY MODAL STATE
+  // -------------------------------------------------------------
+  const [isIngredientModalOpen, setIsIngredientModalOpen] = useState(false);
+  const [editingIngredient, setEditingIngredient] = useState<DbIngredient | null>(null);
+  const [ingredientForm, setIngredientForm] = useState({
+    name: '',
+    category: 'Floral',
+    stock_qty: 100,
+    description: '',
+    isPopular: false,
+  });
+
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+    subtitle: '',
+    description: '',
+  });
+
+
+  // -------------------------------------------------------------
+  // BOTTLE & PRICING ACTIONS
+  // -------------------------------------------------------------
+  const handleOpenAddBottle = () => {
+    setEditingBottle(null);
+    setBottleForm({
+      size: '75 ml',
+      volume: 75,
+      price: 2190,
+      bottleType: 'Maison Flacon',
+      description: 'Handcrafted mid-size flacon with artisanal seal and fine mist sprayer.',
+      inStock: true,
+    });
+    setIsBottleModalOpen(true);
+  };
+
+  const handleOpenEditBottle = (bottle: BottleOption) => {
+    setEditingBottle(bottle);
+    setBottleForm({
+      size: bottle.size,
+      volume: bottle.volume,
+      price: bottle.price,
+      bottleType: bottle.bottleType,
+      description: bottle.description || '',
+      inStock: bottle.inStock,
+    });
+    setIsBottleModalOpen(true);
+  };
+
+  const handleSaveBottle = (e: React.FormEvent) => {
+    e.preventDefault();
+    let updated: BottleOption[];
+    if (editingBottle) {
+      updated = bottles.map((b) =>
+        b.bottle_id === editingBottle.bottle_id
+          ? {
+              ...b,
+              size: bottleForm.size,
+              volume: Number(bottleForm.volume),
+              price: Number(bottleForm.price),
+              bottleType: bottleForm.bottleType,
+              description: bottleForm.description,
+              inStock: bottleForm.inStock,
+            }
+          : b
+      );
+      showToast(`Bottle "${bottleForm.size}" updated to ฿${Number(bottleForm.price).toLocaleString()}.`);
+    } else {
+      const nextId =
+        bottles.length > 0 ? Math.max(...bottles.map((b) => b.bottle_id)) + 1 : 1;
+      const newBottle: BottleOption = {
+        bottle_id: nextId,
+        size: bottleForm.size,
+        volume: Number(bottleForm.volume),
+        price: Number(bottleForm.price),
+        bottleType: bottleForm.bottleType,
+        description: bottleForm.description,
+        inStock: bottleForm.inStock,
+      };
+      updated = [...bottles, newBottle];
+      showToast(`New bottle "${bottleForm.size}" added to store catalog.`);
+    }
+
+    setBottles(updated);
+    onUpdateBottles?.(updated);
+    setIsBottleModalOpen(false);
+  };
+
+  const handleDeleteBottle = (bottleId: number) => {
+    const target = bottles.find((b) => b.bottle_id === bottleId);
+    if (!target) return;
+    const updated = bottles.filter((b) => b.bottle_id !== bottleId);
+    setBottles(updated);
+    onUpdateBottles?.(updated);
+    showToast(`Bottle size "${target.size}" removed.`);
+  };
+
+  const handleToggleBottleStock = (bottleId: number) => {
+    const updated = bottles.map((b) =>
+      b.bottle_id === bottleId ? { ...b, inStock: !b.inStock } : b
+    );
+    setBottles(updated);
+    onUpdateBottles?.(updated);
+    const target = updated.find((b) => b.bottle_id === bottleId);
+    showToast(`Bottle "${target?.size}" is now ${target?.inStock ? 'IN STOCK' : 'OUT OF STOCK'}.`);
+  };
+
+
+  // -------------------------------------------------------------
+  // SCENT & INGREDIENT ACTIONS
+  // -------------------------------------------------------------
+  const handleOpenAddIngredient = () => {
+    setEditingIngredient(null);
+    setIngredientForm({
+      name: '',
+      category: 'Floral',
+      stock_qty: 80,
+      description: 'Luminous natural botanical essential extract.',
+      isPopular: false,
+    });
+    setIsIngredientModalOpen(true);
+  };
+
+  const handleOpenEditIngredient = (ing: DbIngredient) => {
+    setEditingIngredient(ing);
+    setIngredientForm({
+      name: ing.name,
+      category: ing.category,
+      stock_qty: ing.stock_qty,
+      description: 'Hand-selected artisanal distillation harvested at peak bloom.',
+      isPopular: false,
+    });
+    setIsIngredientModalOpen(true);
+  };
+
+  const handleSaveIngredient = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ingredientForm.name.trim()) return;
+
+    let updated: DbIngredient[];
+    if (editingIngredient) {
+      updated = ingredients.map((i) =>
+        i.ingredient_id === editingIngredient.ingredient_id
+          ? {
+              ...i,
+              name: ingredientForm.name.trim(),
+              category: ingredientForm.category,
+              stock_qty: Number(ingredientForm.stock_qty),
+            }
+          : i
+      );
+      showToast(`Ingredient "${ingredientForm.name}" updated.`);
+    } else {
+      const nextId =
+        ingredients.length > 0 ? Math.max(...ingredients.map((i) => i.ingredient_id)) + 1 : 1;
+      const newIng: DbIngredient = {
+        ingredient_id: nextId,
+        name: ingredientForm.name.trim(),
+        category: ingredientForm.category,
+        stock_qty: Number(ingredientForm.stock_qty),
+      };
+      updated = [...ingredients, newIng];
+      showToast(`New ingredient "${ingredientForm.name}" added to catalog.`);
+    }
+
+    setIngredients(updated);
+
+    // Also sync with propScentFamilies if provided
+    if (propScentFamilies && onUpdateScentFamilies) {
+      const catKey = ingredientForm.category.toLowerCase();
+      const updatedFamilies = propScentFamilies.map((fam) => {
+        if (fam.id === catKey || fam.name.toLowerCase() === catKey) {
+          const ingId = ingredientForm.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+          const existing = fam.ingredients.find(
+            (i) => i.name.toLowerCase() === ingredientForm.name.toLowerCase()
+          );
+          if (existing) {
+            return {
+              ...fam,
+              ingredients: fam.ingredients.map((i) =>
+                i.id === existing.id
+                  ? {
+                      ...i,
+                      name: ingredientForm.name,
+                      description: ingredientForm.description,
+                      isPopular: ingredientForm.isPopular,
+                    }
+                  : i
+              ),
+            };
+          } else {
+            const newIngredientObj: Ingredient = {
+              id: ingId,
+              name: ingredientForm.name,
+              description: ingredientForm.description,
+              familyId: fam.id,
+              familyName: fam.name,
+              isPopular: ingredientForm.isPopular,
+            };
+            return {
+              ...fam,
+              notes: [...fam.notes, ingredientForm.name.toUpperCase()],
+              ingredients: [...fam.ingredients, newIngredientObj],
+            };
+          }
+        }
+        return fam;
+      });
+      onUpdateScentFamilies(updatedFamilies);
+    }
+
+    setIsIngredientModalOpen(false);
+  };
+
+  const handleDeleteIngredient = (ingredientId: number) => {
+    const target = ingredients.find((i) => i.ingredient_id === ingredientId);
+    if (!target) return;
+    const updated = ingredients.filter((i) => i.ingredient_id !== ingredientId);
+    setIngredients(updated);
+
+    // Sync removal from propScentFamilies
+    if (propScentFamilies && onUpdateScentFamilies) {
+      const updatedFamilies = propScentFamilies.map((fam) => ({
+        ...fam,
+        notes: fam.notes.filter((n) => n.toUpperCase() !== target.name.toUpperCase()),
+        ingredients: fam.ingredients.filter(
+          (i) => i.name.toLowerCase() !== target.name.toLowerCase()
+        ),
+      }));
+      onUpdateScentFamilies(updatedFamilies);
+    }
+
+    showToast(`Ingredient "${target.name}" removed from library.`);
+  };
+
+  const handleSaveCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!categoryForm.name.trim()) return;
+
+    if (propScentFamilies && onUpdateScentFamilies) {
+      const catId = categoryForm.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const num = String(propScentFamilies.length + 1).padStart(2, '0');
+      const newFamily: ScentFamily = {
+        id: catId,
+        number: num,
+        name: categoryForm.name.trim(),
+        subtitle: categoryForm.subtitle.trim() || 'Artisanal Botanical Harmony',
+        description:
+          categoryForm.description.trim() ||
+          'Rich handcrafted olfactory expressions distilled from organic mountain harvests.',
+        notes: [],
+        image: '/assets/botanicals/citrus.png',
+        ingredients: [],
+      };
+      onUpdateScentFamilies([...propScentFamilies, newFamily]);
+      showToast(`New Scent Category "${categoryForm.name}" created!`);
+    } else {
+      showToast(`Category "${categoryForm.name}" registered.`);
+    }
+
+    setIsCategoryModalOpen(false);
+    setCategoryForm({ name: '', subtitle: '', description: '' });
+  };
+
+
+
+  const handleAdjustStock = (ingredientId: number, delta: number) => {
+    setIngredients((prev) =>
+      prev.map((ing) =>
+        ing.ingredient_id === ingredientId
+          ? { ...ing, stock_qty: Math.max(0, ing.stock_qty + delta) }
+          : ing
+      )
+    );
+    showToast('Ingredient stock adjusted.');
   };
 
   return (
@@ -1237,6 +1546,577 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
           />
         </div>
       )}
+
+        {/* TAB 3: BOTTLE AND PRICING MANAGEMENT (NEW REQUESTED PAGE) */}
+        {/* ========================================================================= */}
+        {activeTab === 'bottles' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            
+            {/* Header with Add Button */}
+            <div className="bg-[#FBF7F0] border border-[#DAD1C5] p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <span className="text-[10px] tracking-[0.25em] uppercase text-[#C9A25C] font-semibold block mb-1">
+                  Packaging &amp; Pricing Catalog
+                </span>
+                <h2 className="font-serif text-2xl sm:text-3xl text-[#28192A]">
+                  Bottle Sizes &amp; Pricing Management
+                </h2>
+                <p className="text-xs text-[#6B6166] mt-1 max-w-xl">
+                  Add custom bottle capacities, select existing sizes to update their retail prices in Thai Baht (THB), or toggle stock availability. Updates are immediately displayed to customers in the bespoke customizer.
+                </p>
+              </div>
+
+              <button
+                onClick={handleOpenAddBottle}
+                className="px-4 py-2.5 bg-[#28192A] hover:bg-[#3D2540] text-[#FBF7F0] text-xs uppercase tracking-wider font-medium flex items-center justify-center gap-2 transition-all shadow-sm shrink-0"
+              >
+                <Plus className="w-4 h-4 text-[#C9A25C]" />
+                <span>Add Bottle Size</span>
+              </button>
+            </div>
+
+            {/* Bottles Grid Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {bottles.map((bottle) => (
+                <div
+                  key={bottle.bottle_id}
+                  className={`bg-[#FBF7F0] border transition-all p-6 flex flex-col justify-between ${
+                    bottle.inStock ? 'border-[#DAD1C5] shadow-xs' : 'border-dashed border-[#DAD1C5] opacity-75'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-3 pb-3 border-b border-[#DAD1C5]/40 mb-4">
+                      <div>
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-[#6B6166]">
+                          FLACON ID #{bottle.bottle_id}
+                        </span>
+                        <h3 className="font-serif text-2xl text-[#28192A] mt-0.5">
+                          {bottle.size}
+                        </h3>
+                        <span className="text-xs text-[#C9A25C] font-medium block">
+                          {bottle.bottleType}
+                        </span>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="font-serif text-2xl font-semibold text-[#28192A]">
+                          ฿{bottle.price.toLocaleString()}
+                        </span>
+                        <span className="text-[9px] uppercase tracking-wider text-[#6B6166] block">
+                          Retail Price
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-[#6B6166] font-light leading-relaxed mb-4">
+                      {bottle.description || 'Signature Scentify Studio luxury perfume bottle.'}
+                    </p>
+
+                    <div className="flex items-center justify-between text-xs py-2 px-3 bg-[#FBF7F0] border border-[#DAD1C5]/50 mb-4">
+                      <span className="text-[#6B6166]">Inventory Availability:</span>
+                      <button
+                        onClick={() => handleToggleBottleStock(bottle.bottle_id)}
+                        className={`font-mono text-[10px] font-semibold uppercase px-2 py-0.5 ${
+                          bottle.inStock ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {bottle.inStock ? 'In Stock (Active)' : 'Out of Stock'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Card Action Buttons */}
+                  <div className="flex items-center gap-2 pt-3 border-t border-[#DAD1C5]/30">
+                    <button
+                      onClick={() => handleOpenEditBottle(bottle)}
+                      className="flex-1 py-2 bg-[#28192A] hover:bg-[#3D2540] text-[#FBF7F0] text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <Edit className="w-3.5 h-3.5 text-[#C9A25C]" />
+                      <span>Edit Price &amp; Info</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteBottle(bottle.bottle_id)}
+                      className="p-2 border border-red-300 text-red-700 hover:bg-red-50 transition-colors"
+                      title="Delete Bottle Size"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 5: SCENT & INGREDIENT MANAGEMENT (ADD / EDIT / DELETE) */}
+        {/* ========================================================================= */}
+        {activeTab === 'inventory' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            
+            {/* Header with Add Buttons */}
+            <div className="bg-[#FBF7F0] border border-[#DAD1C5] p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <span className="text-[10px] tracking-[0.25em] uppercase text-[#C9A25C] font-semibold block mb-1">
+                  Botanical Extraction Inventory
+                </span>
+                <h2 className="font-serif text-2xl sm:text-3xl text-[#28192A]">
+                  Scent Categories &amp; Botanical Ingredients
+                </h2>
+                <p className="text-xs text-[#6B6166] mt-1 max-w-xl">
+                  Add new scent categories or ingredients, edit extraction details, adjust warehouse stock, or remove discontinued scents. All modifications dynamically update the customer library.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => setIsCategoryModalOpen(true)}
+                  className="px-3.5 py-2.5 bg-[#FBF7F0] hover:bg-[#FBF7F0] border border-[#DAD1C5] text-[#28192A] text-xs uppercase tracking-wider font-medium flex items-center gap-1.5 transition-colors shadow-xs"
+                >
+                  <Plus className="w-3.5 h-3.5 text-[#C9A25C]" />
+                  <span>Add Scent Category</span>
+                </button>
+
+                <button
+                  onClick={handleOpenAddIngredient}
+                  className="px-4 py-2.5 bg-[#28192A] hover:bg-[#3D2540] text-[#FBF7F0] text-xs uppercase tracking-wider font-medium flex items-center gap-1.5 transition-colors shadow-sm"
+                >
+                  <Plus className="w-4 h-4 text-[#C9A25C]" />
+                  <span>Add Ingredient</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Ingredients Table */}
+            <div className="bg-[#FBF7F0] border border-[#DAD1C5] overflow-hidden shadow-xs">
+              <div className="px-5 py-3.5 border-b border-[#DAD1C5] bg-[#FBF7F0] flex items-center justify-between">
+                <span className="font-serif text-base text-[#28192A]">
+                  Catalog Ingredients ({ingredients.length} items)
+                </span>
+                <span className="text-xs text-[#6B6166]">
+                  Live status across all botanical families
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-[#FBF7F0]/60 border-b border-[#DAD1C5] text-[10px] font-mono uppercase tracking-wider text-[#6B6166]">
+                      <th className="py-3 px-4">ID</th>
+                      <th className="py-3 px-4">Botanical Name</th>
+                      <th className="py-3 px-4">Category</th>
+                      <th className="py-3 px-4">Stock Qty</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#DAD1C5]/40 font-light">
+                    {ingredients.map((ing) => (
+                      <tr key={ing.ingredient_id} className="hover:bg-[#FBF7F0]/60 transition-colors">
+                        <td className="py-3 px-4 font-mono font-medium text-[#28192A]">
+                          #{ing.ingredient_id}
+                        </td>
+                        <td className="py-3 px-4 font-serif text-base text-[#28192A]">
+                          {ing.name}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="px-2.5 py-0.5 bg-[#FBF7F0] border border-[#DAD1C5] text-[11px] font-medium text-[#28192A]">
+                            {ing.category}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleAdjustStock(ing.ingredient_id, -5)}
+                              className="w-6 h-6 border border-[#DAD1C5] text-[#28192A] hover:bg-[#FBF7F0] flex items-center justify-center font-bold"
+                            >
+                              -
+                            </button>
+                            <span className="font-mono text-xs w-10 text-center font-medium">
+                              {ing.stock_qty}
+                            </span>
+                            <button
+                              onClick={() => handleAdjustStock(ing.ingredient_id, 5)}
+                              className="w-6 h-6 border border-[#DAD1C5] text-[#28192A] hover:bg-[#FBF7F0] flex items-center justify-center font-bold"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          {ing.stock_qty <= 20 ? (
+                            <span className="px-2 py-0.5 bg-red-100 text-red-800 text-[9px] font-mono uppercase font-bold">
+                              Critical Low
+                            </span>
+                          ) : ing.stock_qty <= 50 ? (
+                            <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[9px] font-mono uppercase font-bold">
+                              Low Reorder
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-mono uppercase font-bold">
+                              Available
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleOpenEditIngredient(ing)}
+                              className="px-2 py-1 bg-[#28192A] hover:bg-[#3D2540] text-[#FBF7F0] text-[10px] uppercase font-mono transition-colors"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteIngredient(ing.ingredient_id)}
+                              className="px-2 py-1 border border-red-300 text-red-700 hover:bg-red-50 text-[10px] uppercase font-mono transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+
+
+      {/* ========================================================================= */}
+      {/* BOTTLE AND PRICING MODAL */}
+      {/* ========================================================================= */}
+      {isBottleModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FBF7F0] border border-[#DAD1C5] max-w-lg w-full p-6 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-[#DAD1C5] mb-5">
+              <h3 className="font-serif text-xl text-[#28192A]">
+                {editingBottle ? 'Edit Bottle Size & Price' : 'Add New Bottle Size'}
+              </h3>
+              <button
+                onClick={() => setIsBottleModalOpen(false)}
+                className="text-[#6B6166] hover:text-[#28192A]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBottle} className="space-y-4">
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                  Bottle Size Display Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 50 ml, 100 ml, 30 ml Travel"
+                  value={bottleForm.size}
+                  onChange={(e) => setBottleForm({ ...bottleForm, size: e.target.value })}
+                  className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A] focus:outline-none focus:border-[#C9A25C]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                    Volume Capacity (ml)
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={5}
+                    max={1000}
+                    value={bottleForm.volume}
+                    onChange={(e) => setBottleForm({ ...bottleForm, volume: Number(e.target.value) })}
+                    className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A] focus:outline-none focus:border-[#C9A25C]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                    Retail Price (THB ฿)
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    value={bottleForm.price}
+                    onChange={(e) => setBottleForm({ ...bottleForm, price: Number(e.target.value) })}
+                    className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A] font-semibold text-[#C9A25C] focus:outline-none focus:border-[#C9A25C]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                  Bottle Flacon Style / Type
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Classic Flacon, Grand Flacon, Travel Atomizer"
+                  value={bottleForm.bottleType}
+                  onChange={(e) => setBottleForm({ ...bottleForm, bottleType: e.target.value })}
+                  className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A] focus:outline-none focus:border-[#C9A25C]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                  Packaging Description
+                </label>
+                <textarea
+                  rows={2}
+                  value={bottleForm.description}
+                  onChange={(e) => setBottleForm({ ...bottleForm, description: e.target.value })}
+                  className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A] focus:outline-none focus:border-[#C9A25C]"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="bottleStockCheck"
+                  checked={bottleForm.inStock}
+                  onChange={(e) => setBottleForm({ ...bottleForm, inStock: e.target.checked })}
+                  className="w-4 h-4 text-[#C9A25C] accent-[#C9A25C]"
+                />
+                <label htmlFor="bottleStockCheck" className="text-xs text-[#28192A]">
+                  Active and available for customer bespoke orders
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-[#DAD1C5]/40">
+                <button
+                  type="button"
+                  onClick={() => setIsBottleModalOpen(false)}
+                  className="px-4 py-2 border border-[#DAD1C5] text-xs text-[#6B6166] hover:bg-[#FBF7F0]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingAdmin}
+                  className="px-5 py-2 bg-[#28192A] text-[#FBF7F0] text-xs uppercase tracking-wider font-medium hover:bg-[#3D2540] disabled:opacity-50"
+                >
+                  Save Bottle Options
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+
+
+
+      {/* ========================================================================= */}
+      {/* INGREDIENT MODAL (ADD / EDIT) */}
+      {/* ========================================================================= */}
+      {isIngredientModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FBF7F0] border border-[#DAD1C5] max-w-lg w-full p-6 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-[#DAD1C5] mb-5">
+              <h3 className="font-serif text-xl text-[#28192A]">
+                {editingIngredient ? 'Edit Botanical Ingredient' : 'Add New Ingredient'}
+              </h3>
+              <button onClick={() => setIsIngredientModalOpen(false)} className="text-[#6B6166]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveIngredient} className="space-y-4">
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                  Ingredient Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Cardamom, White Musk, Neroli"
+                  value={ingredientForm.name}
+                  onChange={(e) => setIngredientForm({ ...ingredientForm, name: e.target.value })}
+                  className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                    Scent Category
+                  </label>
+                  <select
+                    value={ingredientForm.category}
+                    onChange={(e) => setIngredientForm({ ...ingredientForm, category: e.target.value })}
+                    className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A]"
+                  >
+                    <option value="Citrus">Citrus</option>
+                    <option value="Floral">Floral</option>
+                    <option value="Woody">Woody</option>
+                    <option value="Fruity">Fruity</option>
+                    <option value="Sweet">Sweet</option>
+                    <option value="Fresh">Fresh</option>
+                    {propScentFamilies
+                      ?.filter(
+                        (f) =>
+                          !['citrus', 'floral', 'woody', 'fruity', 'sweet', 'fresh'].includes(
+                            f.id.toLowerCase()
+                          )
+                      )
+                      .map((f) => (
+                        <option key={f.id} value={f.name}>
+                          {f.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                    Stock Quantity (Units)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={ingredientForm.stock_qty}
+                    onChange={(e) =>
+                      setIngredientForm({ ...ingredientForm, stock_qty: Number(e.target.value) })
+                    }
+                    className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                  Botanical Description
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Describe its aromatic facets and origin..."
+                  value={ingredientForm.description}
+                  onChange={(e) => setIngredientForm({ ...ingredientForm, description: e.target.value })}
+                  className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A]"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="ingPopularCheck"
+                  checked={ingredientForm.isPopular}
+                  onChange={(e) => setIngredientForm({ ...ingredientForm, isPopular: e.target.checked })}
+                  className="w-4 h-4 text-[#C9A25C] accent-[#C9A25C]"
+                />
+                <label htmlFor="ingPopularCheck" className="text-xs text-[#28192A]">
+                  Mark as "Popular" note in customer fragrance creator
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-[#DAD1C5]/40">
+                <button
+                  type="button"
+                  onClick={() => setIsIngredientModalOpen(false)}
+                  className="px-4 py-2 border border-[#DAD1C5] text-xs text-[#6B6166]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#28192A] text-[#FBF7F0] text-xs uppercase tracking-wider font-medium hover:bg-[#3D2540]"
+                >
+                  Save Ingredient
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 5: CATEGORY MODAL */}
+      {/* ========================================================================= */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FBF7F0] border border-[#DAD1C5] max-w-lg w-full p-6 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-[#DAD1C5] mb-5">
+              <h3 className="font-serif text-xl text-[#28192A]">
+                Add New Scent Category
+              </h3>
+              <button onClick={() => setIsCategoryModalOpen(false)} className="text-[#6B6166]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCategory} className="space-y-4">
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                  Category Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Spicy, Oriental, Gourmand, Aquatic"
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                  className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                  Subtitle
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Exotic · Warm · Enveloping"
+                  value={categoryForm.subtitle}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, subtitle: e.target.value })}
+                  className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                  Category Description
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Aromatic profile and character of this scent family..."
+                  value={categoryForm.description}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                  className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-[#DAD1C5]/40">
+                <button
+                  type="button"
+                  onClick={() => setIsCategoryModalOpen(false)}
+                  className="px-4 py-2 border border-[#DAD1C5] text-xs text-[#6B6166]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#28192A] text-[#FBF7F0] text-xs uppercase tracking-wider font-medium hover:bg-[#3D2540]"
+                >
+                  Create Scent Category
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+
 
     </>
   );
