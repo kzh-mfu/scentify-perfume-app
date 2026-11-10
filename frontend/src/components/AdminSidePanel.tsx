@@ -28,12 +28,14 @@ import {
   Check,
   X,
   Plus,
-Trash2,
-FlaskConical,
-Sparkles,
-ToggleLeft,
-ToggleRight,
-Tag,
+  Trash2,
+  FlaskConical,
+  Sparkles,
+  ToggleLeft,
+  ToggleRight,
+  Tag,
+  Sliders,
+  Layers,
 } from 'lucide-react';
 
 import {
@@ -50,6 +52,7 @@ import {
   MasterFormula,
   ScentFamily,
   Ingredient,
+  CustomizationRule,
 } from '../types';
 
 import {
@@ -63,6 +66,7 @@ import {
   INITIAL_DB_ORDER_ITEMS,
   INITIAL_BOTTLE_OPTIONS,
   INITIAL_MASTER_FORMULAS,
+  INITIAL_CUSTOMIZATION_RULES,
   buildEnrichedOrders,
 } from '../data/adminDatabaseData';
 
@@ -88,6 +92,9 @@ interface AdminSidePanelProps {
   onUpdateBottles?: (bottles: BottleOption[]) => void;
   scentFamilies?: ScentFamily[];
   onUpdateScentFamilies?: (families: ScentFamily[]) => void;
+  rules?: CustomizationRule[];
+  onUpdateRules?: (rules: CustomizationRule[]) => void;
+  onUpdateMasterFormulas?: (formulas: MasterFormula[]) => void;
 }
 
 export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
@@ -112,6 +119,9 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
   onUpdateBottles,
   scentFamilies: propScentFamilies,
   onUpdateScentFamilies,
+  rules: propRules,
+  onUpdateRules,
+  onUpdateMasterFormulas,
 }) => {
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState<
@@ -137,6 +147,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
   const [masterFormulas, setMasterFormulas] = useState<MasterFormula[]>(
     propMasterFormulas || INITIAL_MASTER_FORMULAS
   );
+  const [rules, setRules] = useState<CustomizationRule[]>(propRules || INITIAL_CUSTOMIZATION_RULES);
 
   // Sync state whenever props update
   React.useEffect(() => {
@@ -166,6 +177,10 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
   React.useEffect(() => {
     if (propMasterFormulas) setMasterFormulas(propMasterFormulas);
   }, [propMasterFormulas]);
+
+  React.useEffect(() => {
+    if (propRules) setRules(propRules);
+  }, [propRules]);
 
   // Toast Notification
   const [notification, setNotification] = useState<string | null>(null);
@@ -897,6 +912,170 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
       )
     );
     showToast('Ingredient stock adjusted.');
+  };
+
+  // RULES & FORMULAS MODAL STATE
+  // -------------------------------------------------------------
+  const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<CustomizationRule | null>(null);
+  const [ruleForm, setRuleForm] = useState<{
+    name: string;
+    description: string;
+    type: CustomizationRule['type'];
+    active: boolean;
+    familyA: string;
+    familyB: string;
+    requiredFamily: string;
+    maxNotes: number;
+    reason: string;
+  }>({
+    name: '',
+    description: '',
+    type: 'recommended_pairing',
+    active: true,
+    familyA: 'Citrus',
+    familyB: 'Woody',
+    requiredFamily: 'Floral',
+    maxNotes: 3,
+    reason: '',
+  });
+
+  const [isFormulaModalOpen, setIsFormulaModalOpen] = useState(false);
+  const [editingFormula, setEditingFormula] = useState<MasterFormula | null>(null);
+  const [formulaForm, setFormulaForm] = useState({
+    name: '',
+    topNote: 'Bergamot',
+    heartNote: 'Jasmine',
+    baseNote: 'Sandalwood',
+    recommendedBottle: '50 ml',
+    description: '',
+    active: true,
+  });
+
+
+
+  // -------------------------------------------------------------
+  // CUSTOMIZATION RULES & FORMULAS ACTIONS
+  // -------------------------------------------------------------
+  const handleToggleRule = (ruleId: string) => {
+    const updated = rules.map((r) => (r.id === ruleId ? { ...r, active: !r.active } : r));
+    setRules(updated);
+    onUpdateRules?.(updated);
+    const r = updated.find((x) => x.id === ruleId);
+    showToast(`Rule "${r?.name}" is now ${r?.active ? 'ACTIVE' : 'DEACTIVATED'}.`);
+  };
+
+  const handleSaveRule = (e: React.FormEvent) => {
+    e.preventDefault();
+    let updated: CustomizationRule[];
+    if (editingRule) {
+      updated = rules.map((r) =>
+        r.id === editingRule.id
+          ? {
+              ...r,
+              name: ruleForm.name,
+              description: ruleForm.description,
+              type: ruleForm.type,
+              active: ruleForm.active,
+              params: {
+                familyA: ruleForm.familyA,
+                familyB: ruleForm.familyB,
+                requiredFamily: ruleForm.requiredFamily,
+                maxNotes: Number(ruleForm.maxNotes),
+                reason: ruleForm.reason,
+              },
+            }
+          : r
+      );
+      showToast(`Rule "${ruleForm.name}" updated.`);
+    } else {
+      const newRule: CustomizationRule = {
+        id: `rule-${Date.now().toString(36)}`,
+        name: ruleForm.name,
+        description: ruleForm.description,
+        type: ruleForm.type,
+        active: ruleForm.active,
+        params: {
+          familyA: ruleForm.familyA,
+          familyB: ruleForm.familyB,
+          requiredFamily: ruleForm.requiredFamily,
+          maxNotes: Number(ruleForm.maxNotes),
+          reason: ruleForm.reason,
+        },
+      };
+      updated = [...rules, newRule];
+      showToast(`New customization rule "${ruleForm.name}" registered.`);
+    }
+    setRules(updated);
+    onUpdateRules?.(updated);
+    setIsRuleModalOpen(false);
+  };
+
+  const handleDeleteRule = (ruleId: string) => {
+    const updated = rules.filter((r) => r.id !== ruleId);
+    setRules(updated);
+    onUpdateRules?.(updated);
+    showToast('Customization rule deleted.');
+  };
+
+  const handleToggleFormula = (formulaId: number) => {
+    const updated = masterFormulas.map((f) =>
+      f.id === formulaId ? { ...f, active: !f.active } : f
+    );
+    setMasterFormulas(updated);
+    onUpdateMasterFormulas?.(updated);
+    const target = updated.find((f) => f.id === formulaId);
+    showToast(`Formula "${target?.name}" is now ${target?.active ? 'AVAILABLE' : 'DEACTIVATED'}.`);
+  };
+
+  const handleSaveFormula = (e: React.FormEvent) => {
+    e.preventDefault();
+    let updated: MasterFormula[];
+    if (editingFormula) {
+      updated = masterFormulas.map((f) =>
+        f.id === editingFormula.id
+          ? {
+              ...f,
+              name: formulaForm.name,
+              topNote: formulaForm.topNote,
+              heartNote: formulaForm.heartNote,
+              baseNote: formulaForm.baseNote,
+              recommendedBottle: formulaForm.recommendedBottle,
+              description: formulaForm.description,
+              active: formulaForm.active,
+            }
+          : f
+      );
+      showToast(`Formula "${formulaForm.name}" updated.`);
+    } else {
+      const nextId =
+        masterFormulas.length > 0
+          ? Math.max(...masterFormulas.map((f) => f.id)) + 1
+          : 101;
+      const newF: MasterFormula = {
+        id: nextId,
+        name: formulaForm.name,
+        topNote: formulaForm.topNote,
+        heartNote: formulaForm.heartNote,
+        baseNote: formulaForm.baseNote,
+        recommendedBottle: formulaForm.recommendedBottle,
+        description: formulaForm.description,
+        active: formulaForm.active,
+        created_at: new Date().toISOString(),
+      };
+      updated = [...masterFormulas, newF];
+      showToast(`Master Formula "${formulaForm.name}" created.`);
+    }
+    setMasterFormulas(updated);
+    onUpdateMasterFormulas?.(updated);
+    setIsFormulaModalOpen(false);
+  };
+
+  const handleDeleteFormula = (formulaId: number) => {
+    const updated = masterFormulas.filter((f) => f.id !== formulaId);
+    setMasterFormulas(updated);
+    onUpdateMasterFormulas?.(updated);
+    showToast('Master Formula removed.');
   };
 
   return (
@@ -2116,6 +2295,503 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
       )}
 
       {/* ========================================================================= */}
+ // -------------------------------------------------------------
+
+
+
+
+        {/* TAB 4: CUSTOMIZATION RULES & FORMULAS (NEW REQUESTED PAGE) */}
+        {/* ========================================================================= */}
+        {activeTab === 'rules' && (
+          <div className="space-y-8 animate-in fade-in duration-200">
+            
+            {/* Top Info Banner */}
+            <div className="bg-[#FBF7F0] border border-[#DAD1C5] p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <span className="text-[10px] tracking-[0.25em] uppercase text-[#C9A25C] font-semibold block mb-1">
+                  Olfactory Guardrails &amp; Formulations
+                </span>
+                <h2 className="font-serif text-2xl sm:text-3xl text-[#28192A]">
+                  Customization Rules &amp; Master Formulas
+                </h2>
+                <p className="text-xs text-[#6B6166] mt-1 max-w-2xl">
+                  Configure real-time olfactory combination rules (max notes, mandatory harmonic anchors, forbidden pairings) and curate master pre-formulated blends that customers can select as bespoke inspirations.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => {
+                    setEditingRule(null);
+                    setRuleForm({
+                      name: '',
+                      description: '',
+                      type: 'recommended_pairing',
+                      active: true,
+                      familyA: 'Citrus',
+                      familyB: 'Woody',
+                      requiredFamily: 'Floral',
+                      maxNotes: 3,
+                      reason: '',
+                    });
+                    setIsRuleModalOpen(true);
+                  }}
+                  className="px-3.5 py-2 bg-[#28192A] hover:bg-[#3D2540] text-[#FBF7F0] text-xs uppercase tracking-wider font-medium flex items-center gap-1.5 transition-colors shadow-sm"
+                >
+                  <Plus className="w-3.5 h-3.5 text-[#C9A25C]" />
+                  <span>Add Rule</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setEditingFormula(null);
+                    setFormulaForm({
+                      name: '',
+                      topNote: 'Bergamot',
+                      heartNote: 'Jasmine',
+                      baseNote: 'Sandalwood',
+                      recommendedBottle: '50 ml',
+                      description: 'Signature balanced formula.',
+                      active: true,
+                    });
+                    setIsFormulaModalOpen(true);
+                  }}
+                  className="px-3.5 py-2 bg-[#C9A25C] hover:bg-[#B38F4D] text-[#28192A] text-xs uppercase tracking-wider font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Add Formula</span>
+                </button>
+              </div>
+            </div>
+
+            {/* SECTION 1: CUSTOMIZATION RULES */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-[#DAD1C5] pb-2">
+                <h3 className="font-serif text-xl text-[#28192A] flex items-center gap-2">
+                  <Sliders className="w-5 h-5 text-[#C9A25C]" />
+                  <span>Active Customization Rules ({rules.length})</span>
+                </h3>
+                <span className="text-xs text-[#6B6166]">
+                  Applied live to customer perfume creation
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {rules.map((rule) => (
+                  <div
+                    key={rule.id}
+                    className={`bg-[#FBF7F0] border p-5 transition-all flex flex-col justify-between ${
+                      rule.active ? 'border-[#DAD1C5] shadow-xs' : 'border-dashed border-[#DAD1C5] opacity-60'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-serif text-lg font-medium text-[#28192A]">
+                              {rule.name}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-mono tracking-wider uppercase text-[#C9A25C]">
+                            TYPE: {rule.type.replace('_', ' ').toUpperCase()}
+                          </span>
+                        </div>
+
+                        <button
+                          onClick={() => handleToggleRule(rule.id)}
+                          className={`px-2.5 py-1 text-[10px] font-mono uppercase font-bold transition-colors ${
+                            rule.active ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-200 text-zinc-700'
+                          }`}
+                        >
+                          {rule.active ? 'ACTIVE' : 'DEACTIVATED'}
+                        </button>
+                      </div>
+
+                      <p className="text-xs text-[#6B6166] font-light leading-relaxed mb-3">
+                        {rule.description}
+                      </p>
+
+                      {rule.params?.reason && (
+                        <div className="text-[11px] bg-[#FBF7F0] p-2.5 border border-[#DAD1C5]/60 text-[#28192A] mb-3">
+                          <span className="font-semibold text-[#C9A25C]">Olfactory Rule: </span>
+                          {rule.params.reason}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#DAD1C5]/30">
+                      <button
+                        onClick={() => {
+                          setEditingRule(rule);
+                          setRuleForm({
+                            name: rule.name,
+                            description: rule.description,
+                            type: rule.type,
+                            active: rule.active,
+                            familyA: rule.params?.familyA || 'Citrus',
+                            familyB: rule.params?.familyB || 'Woody',
+                            requiredFamily: rule.params?.requiredFamily || 'Floral',
+                            maxNotes: rule.params?.maxNotes || 3,
+                            reason: rule.params?.reason || '',
+                          });
+                          setIsRuleModalOpen(true);
+                        }}
+                        className="px-2.5 py-1 text-xs text-[#28192A] hover:bg-[#FBF7F0] border border-[#DAD1C5] flex items-center gap-1"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                        <span>Edit</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteRule(rule.id)}
+                        className="px-2.5 py-1 text-xs text-red-600 hover:bg-red-50 border border-red-200 flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* SECTION 2: MASTER FORMULAS */}
+            <div className="space-y-4 pt-4">
+              <div className="flex items-center justify-between border-b border-[#DAD1C5] pb-2">
+                <h3 className="font-serif text-xl text-[#28192A] flex items-center gap-2">
+                  <FlaskConical className="w-5 h-5 text-[#C9A25C]" />
+                  <span>Master Formulations Catalog ({masterFormulas.length})</span>
+                </h3>
+                <span className="text-xs text-[#6B6166]">
+                  Available in Scentify customizer as inspiration blends
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {masterFormulas.map((form) => (
+                  <div
+                    key={form.id}
+                    className={`bg-[#FBF7F0] border p-5 transition-all flex flex-col justify-between ${
+                      form.active ? 'border-[#DAD1C5] shadow-xs' : 'border-dashed border-[#DAD1C5] opacity-60'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-2 pb-2 border-b border-[#DAD1C5]/30 mb-3">
+                        <div>
+                          <span className="text-[10px] font-mono text-[#6B6166]">FORMULA #{form.id}</span>
+                          <h4 className="font-serif text-lg text-[#28192A] font-medium">
+                            {form.name}
+                          </h4>
+                        </div>
+                        <button
+                          onClick={() => handleToggleFormula(form.id)}
+                          className={`px-2 py-0.5 text-[9px] font-mono uppercase font-bold ${
+                            form.active ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-200 text-zinc-700'
+                          }`}
+                        >
+                          {form.active ? 'LIVE' : 'OFF'}
+                        </button>
+                      </div>
+
+                      <div className="space-y-1.5 text-xs mb-3 bg-[#FBF7F0] p-2.5 border border-[#DAD1C5]/50">
+                        <div className="flex justify-between">
+                          <span className="text-[#6B6166] text-[10px] uppercase">Top Note:</span>
+                          <span className="font-medium text-[#28192A]">{form.topNote}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[#6B6166] text-[10px] uppercase">Heart Note:</span>
+                          <span className="font-medium text-[#28192A]">{form.heartNote}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[#6B6166] text-[10px] uppercase">Base Note:</span>
+                          <span className="font-medium text-[#28192A]">{form.baseNote}</span>
+                        </div>
+                        {form.recommendedBottle && (
+                          <div className="flex justify-between pt-1 border-t border-[#DAD1C5]/30">
+                            <span className="text-[#C9A25C] text-[10px] uppercase">Vessel:</span>
+                            <span className="font-mono text-[11px] text-[#28192A]">{form.recommendedBottle}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-[#6B6166] font-light leading-relaxed mb-4">
+                        {form.description}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#DAD1C5]/30">
+                      <button
+                        onClick={() => {
+                          setEditingFormula(form);
+                          setFormulaForm({
+                            name: form.name,
+                            topNote: form.topNote,
+                            heartNote: form.heartNote,
+                            baseNote: form.baseNote,
+                            recommendedBottle: form.recommendedBottle || '50 ml',
+                            description: form.description,
+                            active: form.active,
+                          });
+                          setIsFormulaModalOpen(true);
+                        }}
+                        className="px-2.5 py-1 text-xs text-[#28192A] hover:bg-[#FBF7F0] border border-[#DAD1C5] flex items-center gap-1"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                        <span>Edit</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteFormula(form.id)}
+                        className="px-2.5 py-1 text-xs text-red-600 hover:bg-red-50 border border-red-200 flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+
+
+      {/* MODAL 2: CUSTOMIZATION RULES MODAL */}
+      {/* ========================================================================= */}
+      {isRuleModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FBF7F0] border border-[#DAD1C5] max-w-lg w-full p-6 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-[#DAD1C5] mb-5">
+              <h3 className="font-serif text-xl text-[#28192A]">
+                {editingRule ? 'Edit Customization Rule' : 'Add Customization Rule'}
+              </h3>
+              <button onClick={() => setIsRuleModalOpen(false)} className="text-[#6B6166]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRule} className="space-y-4">
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                  Rule Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Citrus & Woody Harmonious Bridge"
+                  value={ruleForm.name}
+                  onChange={(e) => setRuleForm({ ...ruleForm, name: e.target.value })}
+                  className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                  Rule Type
+                </label>
+                <select
+                  value={ruleForm.type}
+                  onChange={(e) => setRuleForm({ ...ruleForm, type: e.target.value as any })}
+                  className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A]"
+                >
+                  <option value="max_notes">Maximum Notes Limit</option>
+                  <option value="recommended_pairing">Harmonious Pairing Recommendation</option>
+                  <option value="required_family">Mandatory Olfactory Family Anchor</option>
+                  <option value="forbidden_pairing">Incompatible Pairing Restriction</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                  Description / Instruction
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="Explain how this rule protects the fragrance balance..."
+                  value={ruleForm.description}
+                  onChange={(e) => setRuleForm({ ...ruleForm, description: e.target.value })}
+                  className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                  Olfactory Reason shown to customer
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Bridging with Floral creates a smooth transition."
+                  value={ruleForm.reason}
+                  onChange={(e) => setRuleForm({ ...ruleForm, reason: e.target.value })}
+                  className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A]"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="ruleActiveCheck"
+                  checked={ruleForm.active}
+                  onChange={(e) => setRuleForm({ ...ruleForm, active: e.target.checked })}
+                  className="w-4 h-4 text-[#C9A25C] accent-[#C9A25C]"
+                />
+                <label htmlFor="ruleActiveCheck" className="text-xs text-[#28192A]">
+                  Rule is active and strictly enforced in customer Scentify customizer
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-[#DAD1C5]/40">
+                <button
+                  type="button"
+                  onClick={() => setIsRuleModalOpen(false)}
+                  className="px-4 py-2 border border-[#DAD1C5] text-xs text-[#6B6166]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#28192A] text-[#FBF7F0] text-xs uppercase tracking-wider font-medium hover:bg-[#3D2540]"
+                >
+                  Save Customization Rule
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 3: MASTER FORMULA MODAL */}
+      {/* ========================================================================= */}
+      {isFormulaModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FBF7F0] border border-[#DAD1C5] max-w-lg w-full p-6 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-[#DAD1C5] mb-5">
+              <h3 className="font-serif text-xl text-[#28192A]">
+                {editingFormula ? 'Edit Master Formula' : 'Add Master Formula'}
+              </h3>
+              <button onClick={() => setIsFormulaModalOpen(false)} className="text-[#6B6166]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveFormula} className="space-y-4">
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                  Formula Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Golden Dawn, Imperial Oud"
+                  value={formulaForm.name}
+                  onChange={(e) => setFormulaForm({ ...formulaForm, name: e.target.value })}
+                  className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A]"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[10px] uppercase font-semibold text-[#28192A] mb-1">
+                    Top Note
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formulaForm.topNote}
+                    onChange={(e) => setFormulaForm({ ...formulaForm, topNote: e.target.value })}
+                    className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-2.5 py-1.5 text-xs text-[#28192A]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-semibold text-[#28192A] mb-1">
+                    Heart Note
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formulaForm.heartNote}
+                    onChange={(e) => setFormulaForm({ ...formulaForm, heartNote: e.target.value })}
+                    className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-2.5 py-1.5 text-xs text-[#28192A]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-semibold text-[#28192A] mb-1">
+                    Base Note
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formulaForm.baseNote}
+                    onChange={(e) => setFormulaForm({ ...formulaForm, baseNote: e.target.value })}
+                    className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-2.5 py-1.5 text-xs text-[#28192A]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                  Recommended Bottle Size
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 50 ml, 100 ml"
+                  value={formulaForm.recommendedBottle}
+                  onChange={(e) => setFormulaForm({ ...formulaForm, recommendedBottle: e.target.value })}
+                  className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
+                  Formula Description
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="Artisanal description of this fragrance blend..."
+                  value={formulaForm.description}
+                  onChange={(e) => setFormulaForm({ ...formulaForm, description: e.target.value })}
+                  className="w-full bg-[#FBF7F0] border border-[#DAD1C5] px-3 py-2 text-xs text-[#28192A]"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="formulaActiveCheck"
+                  checked={formulaForm.active}
+                  onChange={(e) => setFormulaForm({ ...formulaForm, active: e.target.checked })}
+                  className="w-4 h-4 text-[#C9A25C] accent-[#C9A25C]"
+                />
+                <label htmlFor="formulaActiveCheck" className="text-xs text-[#28192A]">
+                  Formula is live and available in customer studio presets
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-[#DAD1C5]/40">
+                <button
+                  type="button"
+                  onClick={() => setIsFormulaModalOpen(false)}
+                  className="px-4 py-2 border border-[#DAD1C5] text-xs text-[#6B6166]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#28192A] text-[#FBF7F0] text-xs uppercase tracking-wider font-medium hover:bg-[#3D2540]"
+                >
+                  Save Master Formula
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
 
     </>
