@@ -650,6 +650,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
   });
 
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<ScentFamily | null>(null);
   const [categoryForm, setCategoryForm] = useState({
     name: '',
     subtitle: '',
@@ -803,8 +804,6 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
     }
 
     setIngredients(updated);
-
-    // Also sync with propScentFamilies if provided
     if (propScentFamilies && onUpdateScentFamilies) {
       const catKey = ingredientForm.category.toLowerCase();
       const updatedFamilies = propScentFamilies.map((fam) => {
@@ -872,32 +871,68 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
     showToast(`Ingredient "${target.name}" removed from library.`);
   };
 
+  const handleOpenEditCategory = (family: ScentFamily) => {
+    setEditingCategory(family);
+    setCategoryForm({
+      name: family.name,
+      subtitle: family.subtitle,
+      description: family.description,
+    });
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleDeleteCategory = (categoryId: string) => {
+    if (!propScentFamilies || !onUpdateScentFamilies) return;
+
+    const target = propScentFamilies.find((family) => family.id === categoryId);
+    if (!target) return;
+
+    onUpdateScentFamilies(propScentFamilies.filter((family) => family.id !== categoryId));
+    showToast(`Scent Category "${target.name}" deleted.`);
+  };
+
   const handleSaveCategory = (e: React.FormEvent) => {
     e.preventDefault();
     if (!categoryForm.name.trim()) return;
 
     if (propScentFamilies && onUpdateScentFamilies) {
-      const catId = categoryForm.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const num = String(propScentFamilies.length + 1).padStart(2, '0');
-      const newFamily: ScentFamily = {
-        id: catId,
-        number: num,
-        name: categoryForm.name.trim(),
-        subtitle: categoryForm.subtitle.trim() || 'Artisanal Botanical Harmony',
-        description:
-          categoryForm.description.trim() ||
-          'Rich handcrafted olfactory expressions distilled from organic mountain harvests.',
-        notes: [],
-        image: '/assets/botanicals/citrus.png',
-        ingredients: [],
-      };
-      onUpdateScentFamilies([...propScentFamilies, newFamily]);
-      showToast(`New Scent Category "${categoryForm.name}" created!`);
+      if (editingCategory) {
+        const updatedFamilies = propScentFamilies.map((family) =>
+          family.id === editingCategory.id
+            ? {
+                ...family,
+                name: categoryForm.name.trim(),
+                subtitle: categoryForm.subtitle.trim(),
+                description: categoryForm.description.trim(),
+              }
+            : family
+        );
+        onUpdateScentFamilies(updatedFamilies);
+        showToast(`Scent Category "${categoryForm.name}" updated.`);
+      } else {
+        const catId = categoryForm.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        const num = String(propScentFamilies.length + 1).padStart(2, '0');
+        const newFamily: ScentFamily = {
+          id: catId,
+          number: num,
+          name: categoryForm.name.trim(),
+          subtitle: categoryForm.subtitle.trim() || 'Artisanal Botanical Harmony',
+          description:
+            categoryForm.description.trim() ||
+            'Rich handcrafted olfactory expressions distilled from organic mountain harvests.',
+          notes: [],
+          image: '/assets/botanicals/citrus.png',
+          ingredients: [],
+        };
+        onUpdateScentFamilies([...propScentFamilies, newFamily]);
+        showToast(`New Scent Category "${categoryForm.name}" created!`);
+      }
     } else {
       showToast(`Category "${categoryForm.name}" registered.`);
     }
 
     setIsCategoryModalOpen(false);
+    setEditingCategory(null);
     setCategoryForm({ name: '', subtitle: '', description: '' });
   };
 
@@ -1851,7 +1886,11 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
 
               <div className="flex items-center gap-2.5">
                 <button
-                  onClick={() => setIsCategoryModalOpen(true)}
+                  onClick={() => {
+                    setEditingCategory(null);
+                    setCategoryForm({ name: '', subtitle: '', description: '' });
+                    setIsCategoryModalOpen(true);
+                  }}
                   className="px-3.5 py-2.5 bg-[#FBF7F0] hover:bg-[#FBF7F0] border border-[#DAD1C5] text-[#28192A] text-xs uppercase tracking-wider font-medium flex items-center gap-1.5 transition-colors shadow-xs"
                 >
                   <Plus className="w-3.5 h-3.5 text-[#C9A25C]" />
@@ -1866,6 +1905,57 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
                   <span>Add Ingredient</span>
                 </button>
               </div>
+            </div>
+
+            {/* Scent Categories */}
+            <div className="bg-[#FBF7F0] border border-[#DAD1C5] overflow-hidden shadow-xs">
+              <div className="px-5 py-3.5 border-b border-[#DAD1C5] bg-[#FBF7F0] flex items-center justify-between">
+                <span className="font-serif text-base text-[#28192A]">
+                  Scent Categories ({propScentFamilies?.length || 0})
+                </span>
+                <span className="text-xs text-[#6B6166]">Manage botanical scent families</span>
+              </div>
+
+              {propScentFamilies && propScentFamilies.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-5">
+                  {propScentFamilies.map((family) => (
+                    <div key={family.id} className="border border-[#DAD1C5] bg-white/40 p-4 flex flex-col">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="font-serif text-lg text-[#28192A]">{family.name}</h3>
+                          <p className="text-[10px] uppercase tracking-wider text-[#C9A25C] mt-1">
+                            {family.subtitle}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-mono text-[#6B6166] border border-[#DAD1C5] px-2 py-1 whitespace-nowrap">
+                          {(family.ingredients || []).length} ingredients
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#6B6166] leading-relaxed mt-3 flex-1">
+                        {family.description}
+                      </p>
+                      <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[#DAD1C5]/60">
+                        <button
+                          onClick={() => handleOpenEditCategory(family)}
+                          className="px-2.5 py-1 border border-[#DAD1C5] text-[#28192A] text-[10px] uppercase font-mono hover:bg-[#FBF7F0]"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCategory(family.id)}
+                          className="px-2.5 py-1 border border-red-300 text-red-700 text-[10px] uppercase font-mono hover:bg-red-50"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="px-5 py-8 text-center text-xs text-[#6B6166]">
+                  No scent categories available. Add a scent category to get started.
+                </p>
+              )}
             </div>
 
             {/* Ingredients Table */}
@@ -2226,9 +2316,15 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
           <div className="bg-[#FBF7F0] border border-[#DAD1C5] max-w-lg w-full p-6 shadow-2xl animate-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-[#DAD1C5] mb-5">
               <h3 className="font-serif text-xl text-[#28192A]">
-                Add New Scent Category
+                {editingCategory ? 'Edit Scent Category' : 'Add New Scent Category'}
               </h3>
-              <button onClick={() => setIsCategoryModalOpen(false)} className="text-[#6B6166]">
+              <button
+                onClick={() => {
+                  setIsCategoryModalOpen(false);
+                  setEditingCategory(null);
+                }}
+                className="text-[#6B6166]"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -2277,7 +2373,10 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
               <div className="flex justify-end gap-3 pt-4 border-t border-[#DAD1C5]/40">
                 <button
                   type="button"
-                  onClick={() => setIsCategoryModalOpen(false)}
+                  onClick={() => {
+                    setIsCategoryModalOpen(false);
+                    setEditingCategory(null);
+                  }}
                   className="px-4 py-2 border border-[#DAD1C5] text-xs text-[#6B6166]"
                 >
                   Cancel
@@ -2286,7 +2385,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
                   type="submit"
                   className="px-5 py-2 bg-[#28192A] text-[#FBF7F0] text-xs uppercase tracking-wider font-medium hover:bg-[#3D2540]"
                 >
-                  Create Scent Category
+                  {editingCategory ? 'Save Changes' : 'Create Scent Category'}
                 </button>
               </div>
             </form>
