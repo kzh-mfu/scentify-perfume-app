@@ -1889,7 +1889,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 3: BOTTLE AND PRICING MANAGEMENT (NEW REQUESTED PAGE) */}
+        {/* TAB 3: BOTTLE AND PRICING MANAGEMENT */}
         {/* ========================================================================= */}
         {activeTab === 'bottles' && (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -1993,7 +1993,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: CUSTOMIZATION RULES & FORMULAS (NEW REQUESTED PAGE) */}
+        {/* TAB 4: CUSTOMIZATION RULES & FORMULAS */}
         {/* ========================================================================= */}
         {activeTab === 'rules' && (
           <div className="space-y-8 animate-in fade-in duration-200">
@@ -2250,7 +2250,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 5: SCENT & INGREDIENT MANAGEMENT (ADD / EDIT / DELETE) */}
+        {/* TAB 5: SCENT & INGREDIENT MANAGEMENT (WITH CATEGORY LIST, ADD, EDIT & DELETE) */}
         {/* ========================================================================= */}
         {activeTab === 'inventory' && (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -2292,7 +2292,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
               </div>
             </div>
 
-            {/* Scent Categories */}
+            {/* Scent Categories Listing Grid */}
             <div className="bg-[#FBF7F0] border border-[#DAD1C5] overflow-hidden shadow-xs">
               <div className="px-5 py-3.5 border-b border-[#DAD1C5] bg-[#FBF7F0] flex items-center justify-between">
                 <span className="font-serif text-base text-[#28192A]">
@@ -2304,31 +2304,34 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
               {propScentFamilies && propScentFamilies.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-5">
                   {propScentFamilies.map((family) => (
-                    <div key={family.id} className="border border-[#DAD1C5] bg-white/40 p-4 flex flex-col">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="font-serif text-lg text-[#28192A]">{family.name}</h3>
-                          <p className="text-[10px] uppercase tracking-wider text-[#C9A25C] mt-1">
-                            {family.subtitle}
-                          </p>
+                    <div key={family.id} className="border border-[#DAD1C5] bg-white/40 p-4 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="font-serif text-lg text-[#28192A]">{family.name}</h3>
+                            <p className="text-[10px] uppercase tracking-wider text-[#C9A25C] mt-1">
+                              {family.subtitle}
+                            </p>
+                          </div>
+                          <span className="text-[10px] font-mono text-[#6B6166] border border-[#DAD1C5] px-2 py-1 whitespace-nowrap">
+                            {(family.ingredients || []).length} ingredients
+                          </span>
                         </div>
-                        <span className="text-[10px] font-mono text-[#6B6166] border border-[#DAD1C5] px-2 py-1 whitespace-nowrap">
-                          {(family.ingredients || []).length} ingredients
-                        </span>
+                        <p className="text-xs text-[#6B6166] leading-relaxed mt-3 flex-1">
+                          {family.description}
+                        </p>
                       </div>
-                      <p className="text-xs text-[#6B6166] leading-relaxed mt-3 flex-1">
-                        {family.description}
-                      </p>
+
                       <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[#DAD1C5]/60">
                         <button
                           onClick={() => handleOpenEditCategory(family)}
-                          className="px-2.5 py-1 border border-[#DAD1C5] text-[#28192A] text-[10px] uppercase font-mono hover:bg-[#FBF7F0]"
+                          className="px-2.5 py-1 border border-[#DAD1C5] text-[#28192A] text-[10px] uppercase font-mono hover:bg-[#FBF7F0] transition-colors"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleDeleteCategory(family.id)}
-                          className="px-2.5 py-1 border border-red-300 text-red-700 text-[10px] uppercase font-mono hover:bg-red-50"
+                          className="px-2.5 py-1 border border-red-300 text-red-700 text-[10px] uppercase font-mono hover:bg-red-50 transition-colors"
                         >
                           Delete
                         </button>
@@ -2441,7 +2444,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 6: ADMIN & STAFF MANAGEMENT (ADD ANOTHER ADMIN) */}
+        {/* TAB 6: ADMIN & STAFF MANAGEMENT */}
         {/* ========================================================================= */}
         {activeTab === 'admins' && (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -3089,7 +3092,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 5: CATEGORY MODAL */}
+      {/* MODAL 5: CATEGORY MODAL (ADD / EDIT) */}
       {/* ========================================================================= */}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -3174,7 +3177,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 6: ADMIN & STAFF MODAL (ADD ANOTHER ADMIN) */}
+      {/* MODAL 6: ADMIN & STAFF MODAL */}
       {/* ========================================================================= */}
       {isAdminModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
