@@ -303,6 +303,24 @@ frontend build; use the existing Firebase web app values and the production
 backend URL. After this one-time setup, an approved push to `main` publishes
 the new frontend automatically.
 
+### Automatic Cloud Run backend deployment from GitHub
+
+Pushes to `main` that change `backend/` automatically build and deploy the
+backend through `.github/workflows/backend-cloud-run.yml`. The existing
+`FIREBASE_SERVICE_ACCOUNT` GitHub secret must have these Google Cloud IAM roles:
+
+```text
+Cloud Run Admin
+Cloud Build Editor
+Service Usage Consumer
+Service Account User
+```
+
+The workflow deploys the existing [backend/Dockerfile](./backend/Dockerfile)
+to the `scentify-backend` Cloud Run service in `asia-southeast1`, preserving
+the service's existing runtime environment variables and Cloud SQL connection.
+It then calls `/api/health` and fails the workflow if the service is unhealthy.
+
 ## Security
 
 Never commit or expose:

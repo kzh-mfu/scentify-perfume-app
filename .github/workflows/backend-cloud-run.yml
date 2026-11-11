@@ -1,0 +1,49 @@
+name: Deploy backend to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-cloud-run.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      GOOGLE_CLOUD_PROJECT: scentify-513806
+      CLOUD_RUN_SERVICE: scentify-backend
+      CLOUD_RUN_REGION: asia-southeast1
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy backend to Cloud Run
+        run: |
+          gcloud run deploy "$CLOUD_RUN_SERVICE" \
+            --source backend \
+            --region "$CLOUD_RUN_REGION" \
+            --project "$GOOGLE_CLOUD_PROJECT" \
+            --platform managed \
+            --quiet
+
+      - name: Verify backend health
+        run: |
+          service_url="$(gcloud run services describe "$CLOUD_RUN_SERVICE" \
+            --region "$CLOUD_RUN_REGION" \
+            --project "$GOOGLE_CLOUD_PROJECT" \
+            --format='value(status.url)')"
+          curl --fail --silent --show-error "$service_url/api/health"
