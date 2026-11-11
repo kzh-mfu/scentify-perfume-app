@@ -4,7 +4,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Navbar } from './components/Navbar';
+import { Navbar } from './components/NavBar';
 import { Footer } from './components/Footer';
 import { HomeView } from './components/HomeView';
 import { IngredientLibraryView } from './components/IngredientLibraryView';
