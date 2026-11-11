@@ -280,6 +280,29 @@ VITE_API_URL=https://your-cloud-run-url
 Add the deployed frontend domain to Identity Platform authorized domains and
 set the same domain in the backend `CORS_ALLOWED_ORIGINS` variable.
 
+### Automatic Firebase deployment from GitHub
+
+Pushes to `main` automatically build and deploy `frontend/` through
+`.github/workflows/firebase-hosting.yml`. Repository administrators must add
+these GitHub Actions secrets in **Settings → Secrets and variables → Actions**:
+
+```text
+FIREBASE_SERVICE_ACCOUNT
+VITE_FIREBASE_API_KEY
+VITE_FIREBASE_AUTH_DOMAIN
+VITE_FIREBASE_PROJECT_ID
+VITE_FIREBASE_STORAGE_BUCKET
+VITE_FIREBASE_MESSAGING_SENDER_ID
+VITE_FIREBASE_APP_ID
+VITE_API_URL
+```
+
+`FIREBASE_SERVICE_ACCOUNT` must contain a Google service-account JSON key with
+permission to deploy Firebase Hosting. The remaining values configure the
+frontend build; use the existing Firebase web app values and the production
+backend URL. After this one-time setup, an approved push to `main` publishes
+the new frontend automatically.
+
 ## Security
 
 Never commit or expose:
