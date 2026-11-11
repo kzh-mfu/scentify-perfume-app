@@ -1279,16 +1279,6 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
 
           {/* Quick Actions & Switch Storefront */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {onSwitchToStorefront && (
-              <button
-                onClick={onSwitchToStorefront}
-                className="px-3 py-1.5 bg-[#FBF7F0]/10 hover:bg-[#FBF7F0]/20 border border-[#DAD1C5]/30 text-xs text-[#FBF7F0] flex items-center gap-1.5 transition-colors"
-                title="Preview Customer Storefront"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-[#C9A25C]" />
-                <span className="hidden sm:inline">View Storefront</span>
-              </button>
-            )}
 
             <button
               onClick={onClose}
