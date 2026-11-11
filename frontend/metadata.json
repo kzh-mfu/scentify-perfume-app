@@ -1,0 +1,6 @@
+{
+  "name": "Scentify Perfume Studio",
+  "description": "The art of personal fragrance. Explore the ingredient library, compose your bespoke perfume, and experience fine handcrafted scents.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

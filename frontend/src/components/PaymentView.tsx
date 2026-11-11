@@ -1,3 +1,7 @@
+/*
+ * Team member: Ei Thandar Kyaw (6831502020)
+ * Frontend tasks: order submission, payment-slip upload, and payment status display.
+ */
 import React, { useState } from 'react';
 import {
   Upload,

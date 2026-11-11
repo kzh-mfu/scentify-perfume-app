@@ -1,3 +1,7 @@
+/*
+ * Team member: Saw Keh Blu (6831503087)
+ * Frontend tasks: customer chat display, message creation, and staff replies.
+ */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Send, MessageCircle, RefreshCw } from 'lucide-react';
 import { backendApi } from '../api';

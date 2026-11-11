@@ -1,3 +1,7 @@
+/*
+ * Team member: Saw Keh Blu (6831503087)
+ * Backend tasks: chat persistence and customer/staff message queries.
+ */
 package com.scentify.repository;
 
 import com.scentify.domain.ChatMessage;

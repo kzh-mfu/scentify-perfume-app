@@ -1,3 +1,7 @@
+/*
+ * Team member: Thuta Naing (6831503029)
+ * Entity tasks: managing order items, quantities, prices, and the order relationship.
+ */
 package com.scentify.domain;
 
 import jakarta.persistence.*;
@@ -34,23 +38,9 @@ public class OrderItem {
     this.unitPrice = unitPrice;
   }
 
-  public Long getId() {
-    return id;
-  }
-
-  public Order getOrder() {
-    return order;
-  }
-
-  public String getProductName() {
-    return productName;
-  }
-
-  public int getQuantity() {
-    return quantity;
-  }
-
-  public BigDecimal getUnitPrice() {
-    return unitPrice;
-  }
+  public Long getId() { return id; }
+  public Order getOrder() { return order; }
+  public String getProductName() { return productName; }
+  public int getQuantity() { return quantity; }
+  public BigDecimal getUnitPrice() { return unitPrice; }
 }

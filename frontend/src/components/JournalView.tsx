@@ -1,3 +1,7 @@
+/*
+ * Team member: Saw Keh Blu (6831503087)
+ * Frontend tasks: journal content, article listing, and navigation.
+ */
 import React, { useState } from 'react';
 import { BookOpen, Calendar, Clock, ArrowRight, Sparkles } from 'lucide-react';
 import { ViewMode } from '../types';

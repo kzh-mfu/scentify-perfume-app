@@ -1,3 +1,7 @@
+/*
+ * Team member: Saw Keh Blu (6831503087)
+ * Frontend tasks: about page content, studio information, and navigation.
+ */
 import React from 'react';
 import { ArrowRight, Sparkles, Compass, Leaf, Droplets } from 'lucide-react';
 import { ViewMode } from '../types';

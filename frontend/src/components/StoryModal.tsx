@@ -1,3 +1,7 @@
+/*
+ * Team member: Saw Keh Blu (6831503087)
+ * Frontend tasks: studio story content, media presentation, and modal interactions.
+ */
 import React from 'react';
 import { X, Play, Volume2, Sparkles } from 'lucide-react';
 

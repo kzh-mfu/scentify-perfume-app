@@ -1,3 +1,7 @@
+/*
+ * Team member: Saw Keh Blu (6831503087)
+ * Entity tasks: creating/listing customer messages and managing staff replies.
+ */
 package com.scentify.domain;
 
 import jakarta.persistence.Column;

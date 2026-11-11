@@ -1,3 +1,7 @@
+/*
+ * Team member: Thuta Naing (6831503029)
+ * Frontend tasks: review selected fragrance items, quantities, and prices before ordering.
+ */
 import React, { useState } from 'react';
 import { CheckCircle2, MessageSquare, ArrowRight, ShieldCheck, Sparkles, Edit3 } from 'lucide-react';
 import { Composition, ViewMode, CartItem, BottleOption } from '../types';

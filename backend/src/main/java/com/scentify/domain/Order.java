@@ -1,3 +1,7 @@
+/*
+ * Team member: Ei Thandar Kyaw (6831502020)
+ * Entity tasks: creating orders, listing purchase history, and updating order/payment status.
+ */
 package com.scentify.domain;
 
 import jakarta.persistence.*;

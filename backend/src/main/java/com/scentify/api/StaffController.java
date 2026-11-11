@@ -2,7 +2,6 @@
  * Team member: Kyaw Zin Htike (6831503011)
  * Shared backend tasks: staff/admin account management and role authorization.
  */
-
 package com.scentify.api;
 
 import com.google.firebase.auth.FirebaseAuth;

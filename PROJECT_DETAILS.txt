@@ -1,0 +1,794 @@
+SCENTIFY PERFUME STUDIO
+========================
+
+This file is a copy-friendly technical summary of the project.
+
+
+1. PROJECT PURPOSE
+------------------
+
+Scentify Perfume Studio is a full-stack web application for creating and
+ordering personalized perfumes.
+
+Customers can:
+- Browse perfume ingredients.
+- Search the ingredient catalog.
+- Build a custom fragrance.
+- Add products to a shopping cart.
+- Submit orders.
+- Upload payment slips.
+- Track order and payment status.
+- Manage their profile and shipping address.
+- Chat with customer support.
+
+Staff and administrators can:
+- Create, update, and delete ingredients.
+- View customer orders.
+- Update order status.
+- Verify customer payments.
+- View and respond to support messages.
+- Create, update, and disable staff accounts.
+
+
+2. REPOSITORY STRUCTURE
+-----------------------
+
+Repository root:
+  /Users/kyawzinhtike/scentify-perfume-studio
+
+Main directories:
+  frontend/       React, TypeScript, Vite, Tailwind frontend
+  backend/        Spring Boot REST API
+  .vscode/        VS Code workspace settings
+  .github/        Modernization and workflow files
+
+Important root files:
+  README.md       Project documentation
+  firebase.json   Firebase Hosting configuration
+
+
+3. TECHNOLOGY STACK
+-------------------
+
+Frontend:
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS
+- React Router
+- Lucide React
+- Motion animations
+- Firebase Authentication SDK
+- IndexedDB for browser-side data
+
+Backend:
+- Java 25
+- Spring Boot 3.5.6
+- Spring Web
+- Spring Validation
+- Spring Data JPA
+- Hibernate
+- Spring Security
+- OAuth2 Resource Server
+- MySQL
+- Flyway
+- Firebase Admin SDK
+- Google Cloud SQL MySQL connector
+
+Deployment services:
+- Firebase Hosting or Cloud Run for the frontend
+- Cloud Run for the backend
+- Cloud SQL for MySQL
+- Firebase Authentication / Google Identity Platform
+- Artifact Registry
+- Cloud Build
+- Secret Manager
+
+
+4. FRONTEND DETAILS
+-------------------
+
+Frontend directory:
+  frontend/
+
+Frontend source:
+  frontend/src/
+
+Important files:
+  frontend/src/App.tsx
+    Main application component, view navigation, authentication state,
+    cart state, order state, admin state, and page rendering.
+
+  frontend/src/api.ts
+    Backend REST API client. Sends authenticated requests to the Spring Boot
+    backend using the configured API URL.
+
+  frontend/src/firebase.ts
+    Firebase initialization, authentication state, sign-in, sign-up,
+    Google authentication, password reset, session handling, and bearer
+    token access.
+
+  frontend/src/types.ts
+    Shared TypeScript types used by the user interface.
+
+  frontend/src/db/indexedDb.ts
+    Browser IndexedDB persistence for local application data.
+
+  frontend/src/data/perfumeData.ts
+    Frontend perfume and fragrance data.
+
+  frontend/src/data/adminDatabaseData.ts
+    Frontend admin-related data and defaults.
+
+  frontend/vite.config.ts
+    Vite, React, Tailwind, development server, alias, and HMR configuration.
+
+Frontend components:
+  AboutView.tsx
+  AdminChatView.tsx
+  AdminSidePanel.tsx
+  AuthModal.tsx
+  CartView.tsx
+  CustomerCareView.tsx
+  Footer.tsx
+  HomeView.tsx
+  IngredientLibraryView.tsx
+  JournalView.tsx
+  Navbar.tsx
+  PaymentView.tsx
+  ProfileView.tsx
+  ReviewFragranceView.tsx
+  ReviewOrderView.tsx
+  ScentifyView.tsx
+  SearchModal.tsx
+  SearchResultsView.tsx
+  StoryModal.tsx
+
+Frontend pages/features:
+- Home page
+- About page
+- Ingredient library
+- Custom perfume builder
+- Fragrance review
+- Shopping cart
+- Checkout
+- Payment
+- Customer profile
+- Order history
+- Customer care
+- Journal
+- Search
+- Admin dashboard
+- Admin chat
+- Authentication modal
+
+Frontend routes/views:
+  /                         Home
+  /ingredients              Ingredient library
+  /scentify                 Custom perfume builder
+  /scentify/review          Fragrance review
+  /cart                     Shopping cart
+  /checkout                 Order review
+  /checkout/payment         Payment
+  /profile                  Profile and order history
+  /customer-care            Customer support
+  /admin                    Staff/admin console
+
+
+5. FRONTEND NPM COMMANDS
+------------------------
+
+Commands must be executed from the frontend directory:
+
+  cd frontend
+  npm install
+  npm run dev
+
+Development URL:
+  http://localhost:3000
+
+Type-check:
+  cd frontend
+  npm run lint
+
+Production build:
+  cd frontend
+  npm run build
+
+Preview production build:
+  cd frontend
+  npm run preview
+
+Clean generated frontend files:
+  cd frontend
+  npm run clean
+
+The repository root does not contain package.json, so npm commands must not
+be run from the repository root.
+
+
+6. FRONTEND ENVIRONMENT VARIABLES
+----------------------------------
+
+File:
+  frontend/.env.example
+
+Expected variables:
+
+  VITE_FIREBASE_API_KEY=
+  VITE_FIREBASE_AUTH_DOMAIN=
+  VITE_FIREBASE_PROJECT_ID=
+  VITE_FIREBASE_STORAGE_BUCKET=
+  VITE_FIREBASE_MESSAGING_SENDER_ID=
+  VITE_FIREBASE_APP_ID=
+  VITE_API_URL=http://localhost:8080
+
+The VITE_FIREBASE_* values are public Firebase web configuration values.
+Do not place private service-account credentials in frontend environment
+variables.
+
+VITE_API_URL is the base URL of the Spring Boot backend.
+
+
+7. BACKEND DETAILS
+------------------
+
+Backend directory:
+  backend/
+
+Main backend files:
+
+  backend/pom.xml
+    Maven project definition, Java version, Spring Boot version, dependencies,
+    and Spring Boot packaging configuration.
+
+  backend/src/main/java/com/scentify/ScentifyApplication.java
+    Spring Boot application entry point.
+
+  backend/src/main/resources/application.yml
+    Default and production-oriented backend configuration.
+
+  backend/src/main/resources/application-local.yml
+    Local profile configuration. It disables database, JPA, Flyway, and
+    OAuth2 resource-server auto-configuration for lightweight local startup.
+
+Backend package structure:
+
+  com.scentify.api
+    REST controllers and current-user authorization helpers.
+
+  com.scentify.config
+    Security, Firebase, and local development configuration.
+
+  com.scentify.domain
+    JPA entities representing application data.
+
+  com.scentify.repository
+    Spring Data JPA repositories.
+
+
+8. BACKEND CONTROLLERS
+----------------------
+
+HealthController:
+  Provides the public health endpoint.
+
+ProfileController:
+  Reads and updates the authenticated user's profile and shipping address.
+
+IngredientController:
+  Lists and searches ingredients. Staff/admin users can create, update, and
+  delete ingredients.
+
+OrderController:
+  Creates orders, lists the current user's orders, lists administrative orders,
+  and updates order/payment status.
+
+ChatController:
+  Provides customer chat and staff/admin chat endpoints.
+
+StaffController:
+  Creates, updates, and disables Firebase/Identity Platform staff accounts.
+
+CurrentUser:
+  Provides authenticated-user lookup and role authorization helpers.
+
+
+9. REST API
+-----------
+
+Health:
+  GET /api/health
+
+Profiles:
+  GET /api/profile
+  PUT /api/profile
+
+Ingredients:
+  GET    /api/ingredients
+  GET    /api/ingredients?search=rose
+  POST   /api/ingredients
+  PUT    /api/ingredients/{id}
+  DELETE /api/ingredients/{id}
+
+Orders:
+  GET   /api/orders/mine
+  GET   /api/orders
+  POST  /api/orders
+  PATCH /api/orders/{id}/status
+
+Chat:
+  GET  /api/chat/messages
+  POST /api/chat/messages
+  GET  /api/chat/admin/messages
+  POST /api/chat/admin/messages
+
+Staff administration:
+  POST /api/admin/staff
+
+All production API endpoints except the health endpoints require an
+authenticated JWT bearer token.
+
+
+10. SECURITY CONFIGURATION
+--------------------------
+
+Main production security file:
+  backend/src/main/java/com/scentify/config/SecurityConfig.java
+
+The production security configuration is active when the local profile is not
+enabled. It provides:
+
+- Stateless HTTP security.
+- Disabled CSRF because the API is stateless.
+- CORS support.
+- OAuth2 JWT resource-server validation.
+- Public access to /api/health.
+- Public access to /actuator/health.
+- Authentication required for every other endpoint.
+
+Production authorization behavior:
+
+  /api/health          public
+  /actuator/health     public
+  all other endpoints  authenticated
+
+Expected request header:
+
+  Authorization: Bearer <JWT_TOKEN>
+
+Allowed CORS methods:
+
+  GET, POST, PUT, PATCH, DELETE, OPTIONS
+
+Allowed CORS headers:
+
+  Authorization, Content-Type
+
+CORS is configured with:
+
+  CORS_ALLOWED_ORIGINS
+
+Default value:
+
+  http://localhost:3000
+
+Local security file:
+  backend/src/main/java/com/scentify/config/LocalSecurityConfig.java
+
+The local profile allows requests without authentication and allows the local
+frontend origin. This is intended only for local development.
+
+Firebase configuration file:
+  backend/src/main/java/com/scentify/config/FirebaseConfig.java
+
+Firebase Admin uses Google Application Default Credentials. Do not commit
+Firebase service-account JSON keys.
+
+
+11. DATABASE AND ENTITIES
+-------------------------
+
+Database migration:
+  backend/src/main/resources/db/migration/V1__create_scentify_tables.sql
+
+Database engine:
+  MySQL 8 or Google Cloud SQL for MySQL
+
+Database name:
+  scentify
+
+Tables:
+
+profiles:
+  id
+  display_name
+  shipping_address
+  created_at
+  updated_at
+
+ingredients:
+  ingredient_id
+  name
+  scent_family
+  description
+  available
+  created_at
+
+orders:
+  order_id
+  order_number
+  user_id
+  customer_name
+  customer_email
+  customer_phone
+  shipping_address
+  total
+  status
+  payment_status
+  payment_slip_url
+  verified_at
+  items
+  created_at
+
+order_items:
+  order_item_id
+  order_id
+  product_name
+  quantity
+  unit_price
+
+studio_chat_messages:
+  id
+  user_id
+  sender_id
+  sender_role
+  message
+  created_at
+
+Relationships:
+- A profile can own multiple orders.
+- An order can contain multiple order items.
+- Order items are deleted when their order is deleted.
+- A profile can own multiple chat messages.
+- Chat messages reference the customer and sender profiles.
+
+JPA entities:
+  backend/src/main/java/com/scentify/domain/Profile.java
+  backend/src/main/java/com/scentify/domain/Ingredient.java
+  backend/src/main/java/com/scentify/domain/Order.java
+  backend/src/main/java/com/scentify/domain/OrderItem.java
+  backend/src/main/java/com/scentify/domain/ChatMessage.java
+
+JPA behavior:
+  Hibernate schema mode is validate.
+  Flyway is enabled to create and manage the schema.
+  Open EntityManager in View is disabled.
+
+
+12. BACKEND ENVIRONMENT VARIABLES
+----------------------------------
+
+Configured in:
+  backend/src/main/resources/application.yml
+
+Variables:
+
+  DATABASE_URL
+    Default:
+      jdbc:mysql://localhost:3306/scentify
+
+  DATABASE_USERNAME
+    Default:
+      root
+
+  DATABASE_PASSWORD
+    Default:
+      root
+
+  GOOGLE_CLOUD_PROJECT_ID
+    Used to construct the default Google Identity Platform issuer URI.
+
+  JWT_ISSUER_URI
+    Optional explicit JWT issuer URI.
+
+  CORS_ALLOWED_ORIGINS
+    Default:
+      http://localhost:3000
+
+  PORT
+    Default:
+      8080
+
+Default backend URL:
+  http://localhost:8080
+
+
+13. BACKEND MAVEN COMMANDS
+--------------------------
+
+Commands must be executed from the backend directory:
+
+  cd backend
+  mvn spring-boot:run
+
+Run with the local profile:
+
+  cd backend
+  mvn spring-boot:run -Dspring-boot.run.profiles=local
+
+Run from the repository root:
+
+  mvn -f backend/pom.xml spring-boot:run \
+    -Dspring-boot.run.profiles=local
+
+Clean and test:
+
+  cd backend
+  mvn clean test
+
+The repository root does not contain pom.xml, so Maven commands must not be
+run from the repository root without using -f backend/pom.xml.
+
+
+14. LOCAL DEVELOPMENT
+---------------------
+
+Required software:
+- Node.js and npm
+- Java 25
+- Maven
+- MySQL 8 for normal backend operation
+- Firebase/Identity Platform configuration for authenticated operation
+
+Start the backend:
+
+  cd backend
+  mvn spring-boot:run
+
+Start the frontend in another terminal:
+
+  cd frontend
+  npm install
+  npm run dev
+
+For a lightweight local backend startup:
+
+  cd backend
+  mvn spring-boot:run -Dspring-boot.run.profiles=local
+
+Health check:
+
+  curl http://localhost:8080/api/health
+
+Expected response:
+
+  {"status":"ok"}
+
+
+15. DEPLOYMENT
+--------------
+
+The intended production architecture is:
+
+  React frontend
+        |
+        | HTTPS and JWT bearer token
+        v
+  Spring Boot API on Cloud Run
+        |
+        | Spring Data JPA and Flyway
+        v
+  Cloud SQL for MySQL
+
+Backend Dockerfile:
+  backend/Dockerfile
+
+The Docker image:
+- Builds with Maven and Eclipse Temurin Java 25.
+- Runs with Eclipse Temurin Java 25 JRE.
+- Exposes port 8080.
+- Uses the Cloud Run PORT environment variable through Spring configuration.
+
+Frontend hosting:
+  firebase.json
+
+Firebase Hosting serves:
+  frontend/dist
+
+Frontend production build:
+
+  cd frontend
+  npm run build
+
+Cloud Run backend variables should include:
+
+  DATABASE_URL
+  DATABASE_USERNAME
+  DATABASE_PASSWORD
+  GOOGLE_CLOUD_PROJECT_ID
+  CORS_ALLOWED_ORIGINS
+
+Cloud SQL connection URL format:
+
+  jdbc:mysql://google/scentify?cloudSqlInstance=PROJECT_ID:REGION:INSTANCE_NAME&socketFactory=com.google.cloud.sql.mysql.SocketFactory&cloudSqlRefreshStrategy=lazy
+
+Production security requirements:
+- Keep database passwords private.
+- Use Secret Manager for production secrets.
+- Do not commit service-account JSON keys.
+- Add the deployed frontend domain to Identity Platform authorized domains.
+- Set CORS_ALLOWED_ORIGINS to the deployed frontend origin.
+
+
+16. VERIFIED BUILD STATUS AT THE TIME OF WRITING
+-------------------------------------------------
+
+Backend verification:
+
+  cd backend
+  mvn clean test
+
+Result:
+  BUILD SUCCESS
+
+There are currently no backend test source files, so Maven reports that no
+tests were run after compilation.
+
+Frontend verification command:
+
+  cd frontend
+  npm run lint
+
+The frontend currently reports TypeScript errors in:
+
+  frontend/src/components/AuthModal.tsx
+
+The reported problems include:
+- data.user is possibly null in several authentication branches.
+- The Google sign-in options object does not match the custom auth wrapper type.
+- The password-reset method is called with an argument shape that does not
+  match the custom auth wrapper signature.
+
+Frontend build commands must be run from frontend/, not from the repository
+root.
+
+
+17. COMMON SETUP ERRORS
+-----------------------
+
+Error:
+  npm error ENOENT ... package.json
+
+Cause:
+  npm was executed from the repository root.
+
+Fix:
+  cd frontend
+  npm run lint
+  npm run build
+
+Error:
+  Maven MissingProjectException / no POM in current directory
+
+Cause:
+  Maven was executed from the repository root.
+
+Fix:
+  cd backend
+  mvn clean test
+
+or:
+
+  mvn -f backend/pom.xml clean test
+
+Error:
+  Database connection failure
+
+Possible causes:
+- MySQL is not running.
+- Database scentify does not exist.
+- DATABASE_URL is incorrect.
+- DATABASE_USERNAME or DATABASE_PASSWORD is incorrect.
+- Flyway cannot apply the migration.
+
+Error:
+  JWT issuer or authentication failure
+
+Possible causes:
+- GOOGLE_CLOUD_PROJECT_ID is missing or incorrect.
+- JWT_ISSUER_URI is incorrect.
+- Firebase/Identity Platform is not configured.
+- The frontend is sending a token from a different project.
+
+Error:
+  CORS failure in the browser
+
+Possible causes:
+- The frontend origin is not in CORS_ALLOWED_ORIGINS.
+- The backend is not running on port 8080.
+- The frontend VITE_API_URL points to the wrong backend.
+
+
+18. TEAM CONTRIBUTION INFORMATION
+----------------------------------
+
+Team members listed in README.md:
+
+  6831503006  Htoo Myat Aung
+  6831503011  Kyaw Zin Htike
+  6831502020  Ei Thandar Kyaw
+  6831503029  Thuta Naing
+  6831503087  Saw Keh Blu
+
+The source files contain team contribution comments identifying areas such as:
+- Production JWT and CORS security.
+- Local development security.
+- Staff/admin management.
+- Profile API.
+- Ingredient/staff API.
+- Order API.
+- Chat API.
+
+
+19. IMPORTANT FILE LOCATIONS
+----------------------------
+
+Project documentation:
+  README.md
+  backend/README.md
+  PROJECT_DETAILS.txt
+
+Frontend:
+  frontend/package.json
+  frontend/src/App.tsx
+  frontend/src/api.ts
+  frontend/src/firebase.ts
+  frontend/src/components/AuthModal.tsx
+  frontend/vite.config.ts
+  frontend/.env.example
+
+Backend:
+  backend/pom.xml
+  backend/Dockerfile
+  backend/src/main/java/com/scentify/ScentifyApplication.java
+  backend/src/main/java/com/scentify/config/SecurityConfig.java
+  backend/src/main/java/com/scentify/config/LocalSecurityConfig.java
+  backend/src/main/java/com/scentify/config/FirebaseConfig.java
+  backend/src/main/resources/application.yml
+  backend/src/main/resources/application-local.yml
+  backend/src/main/resources/db/migration/V1__create_scentify_tables.sql
+
+Deployment:
+  firebase.json
+
+
+20. QUICK START SUMMARY
+-----------------------
+
+Terminal 1 - backend:
+
+  cd backend
+  mvn spring-boot:run -Dspring-boot.run.profiles=local
+
+Terminal 2 - frontend:
+
+  cd frontend
+  npm install
+  npm run dev
+
+Open:
+  http://localhost:3000
+
+Backend health:
+  http://localhost:8080/api/health
+
+Production validation:
+
+  cd frontend
+  npm run lint
+  npm run build
+
+  cd ../backend
+  mvn clean test
+

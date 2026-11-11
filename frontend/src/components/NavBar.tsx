@@ -1,14 +1,10 @@
-import React, { useState } from "react";
-import {
-  Search,
-  ShoppingBag,
-  Menu,
-  X,
-  Sparkles,
-  User,
-  ShieldCheck,
-} from "lucide-react";
-import { ViewMode } from "../types";
+/*
+ * Team member: Htoo Myat Aung (6831503006)
+ * Frontend tasks: navigation, authentication entry points, profile access, and logout.
+ */
+import React, { useState } from 'react';
+import { Search, ShoppingBag, Menu, X, Sparkles, User, ShieldCheck } from 'lucide-react';
+import { ViewMode } from '../types';
 
 interface NavbarProps {
   currentView: ViewMode;
@@ -16,7 +12,7 @@ interface NavbarProps {
   cartCount: number;
   userName?: string | null;
   isAdminUser?: boolean;
-  onOpenAuth: (mode?: "login" | "signup") => void;
+  onOpenAuth: (mode?: 'login' | 'signup') => void;
   onLogout?: () => void;
   onOpenSearch: () => void;
   onOpenAdmin?: () => void;
@@ -39,10 +35,11 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="sticky top-0 z-40 bg-[#FBF7F0]/90 backdrop-blur-md border-b border-[#DAD1C5]/40 transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
+          
           {/* Brand Logo */}
           <button
             onClick={() => {
-              onNavigate("home");
+              onNavigate('home');
               setMobileMenuOpen(false);
             }}
             className="flex flex-col items-start text-left group focus:outline-none"
@@ -58,52 +55,52 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-9">
             <button
-              onClick={() => onNavigate("home")}
+              onClick={() => onNavigate('home')}
               className={`text-sm tracking-wide transition-colors ${
-                currentView === "home"
-                  ? "text-[#C9A25C] font-medium"
-                  : "text-[#28192A]/80 hover:text-[#28192A]"
+                currentView === 'home'
+                  ? 'text-[#C9A25C] font-medium'
+                  : 'text-[#28192A]/80 hover:text-[#28192A]'
               }`}
             >
               Home
             </button>
             <button
-              onClick={() => onNavigate("collection")}
+              onClick={() => onNavigate('collection')}
               className={`text-sm tracking-wide transition-colors ${
-                currentView === "collection"
-                  ? "text-[#C9A25C] font-medium"
-                  : "text-[#28192A]/80 hover:text-[#28192A]"
+                currentView === 'collection'
+                  ? 'text-[#C9A25C] font-medium'
+                  : 'text-[#28192A]/80 hover:text-[#28192A]'
               }`}
             >
               Collection
             </button>
             <button
-              onClick={() => onNavigate("scentify")}
+              onClick={() => onNavigate('scentify')}
               className={`text-sm tracking-wide transition-colors flex items-center gap-1.5 ${
-                currentView === "scentify"
-                  ? "text-[#C9A25C] font-medium"
-                  : "text-[#28192A]/80 hover:text-[#28192A]"
+                currentView === 'scentify'
+                  ? 'text-[#C9A25C] font-medium'
+                  : 'text-[#28192A]/80 hover:text-[#28192A]'
               }`}
             >
               <Sparkles className="w-3.5 h-3.5 text-[#C9A25C]" />
               <span>Create Scent</span>
             </button>
             <button
-              onClick={() => onNavigate("about")}
+              onClick={() => onNavigate('about')}
               className={`text-sm tracking-wide transition-colors ${
-                currentView === "about"
-                  ? "text-[#C9A25C] font-medium"
-                  : "text-[#28192A]/80 hover:text-[#28192A]"
+                currentView === 'about'
+                  ? 'text-[#C9A25C] font-medium'
+                  : 'text-[#28192A]/80 hover:text-[#28192A]'
               }`}
             >
               About
             </button>
             <button
-              onClick={() => onNavigate("journal")}
+              onClick={() => onNavigate('journal')}
               className={`text-sm tracking-wide transition-colors ${
-                currentView === "journal"
-                  ? "text-[#C9A25C] font-medium"
-                  : "text-[#28192A]/80 hover:text-[#28192A]"
+                currentView === 'journal'
+                  ? 'text-[#C9A25C] font-medium'
+                  : 'text-[#28192A]/80 hover:text-[#28192A]'
               }`}
             >
               Journal
@@ -112,6 +109,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Actions: Search, Cart, Auth & Shop Now */}
           <div className="flex items-center space-x-3 sm:space-x-4">
+            
             {/* Admin Console Shortcut if Admin */}
             {isAdminUser && onOpenAdmin && (
               <button
@@ -135,7 +133,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Shopping Cart */}
             <button
-              onClick={() => onNavigate("cart")}
+              onClick={() => onNavigate('cart')}
               className="p-2 text-[#28192A] hover:text-[#C9A25C] transition-colors relative focus:outline-none"
               aria-label="View Shopping Cart"
             >
@@ -151,11 +149,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             {userName ? (
               <div className="hidden sm:flex items-center gap-2">
                 <button
-                  onClick={() => onNavigate("profile")}
+                  onClick={() => onNavigate('profile')}
                   className={`flex items-center gap-1.5 p-1.5 transition-colors text-xs ${
-                    currentView === "profile"
-                      ? "text-[#C9A25C] font-semibold"
-                      : "text-[#28192A] hover:text-[#C9A25C]"
+                    currentView === 'profile'
+                      ? 'text-[#C9A25C] font-semibold'
+                      : 'text-[#28192A] hover:text-[#C9A25C]'
                   }`}
                   title={`View ${userName}'s Profile, Address & Orders`}
                 >
@@ -175,7 +173,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             ) : !isAdminUser ? (
               <button
-                onClick={() => onOpenAuth("signup")}
+                onClick={() => onOpenAuth('signup')}
                 className="hidden sm:inline-flex items-center text-xs tracking-[0.15em] uppercase font-medium text-[#28192A] hover:text-[#C9A25C] transition-colors py-1.5 px-3 border border-[#DAD1C5] hover:border-[#28192A]"
               >
                 Sign Up
@@ -194,7 +192,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Menu className="w-6 h-6 stroke-[1.5]" />
               )}
             </button>
+
           </div>
+
         </div>
       </div>
 
@@ -202,6 +202,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       {mobileMenuOpen && (
         <div className="md:hidden bg-[#FBF7F0] border-b border-[#DAD1C5] px-6 py-6 space-y-4 animate-in slide-in-from-top-2 duration-200">
           <div className="flex flex-col space-y-3">
+            
             {isAdminUser && onOpenAdmin && (
               <button
                 onClick={() => {
@@ -217,7 +218,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={() => {
-                onNavigate("home");
+                onNavigate('home');
                 setMobileMenuOpen(false);
               }}
               className="text-left text-base font-serif text-[#28192A] py-1 border-b border-[#DAD1C5]/30 flex justify-between items-center"
@@ -227,7 +228,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
             <button
               onClick={() => {
-                onNavigate("collection");
+                onNavigate('collection');
                 setMobileMenuOpen(false);
               }}
               className="text-left text-base font-serif text-[#28192A] py-1 border-b border-[#DAD1C5]/30 flex justify-between items-center"
@@ -237,7 +238,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
             <button
               onClick={() => {
-                onNavigate("scentify");
+                onNavigate('scentify');
                 setMobileMenuOpen(false);
               }}
               className="text-left text-base font-serif text-[#28192A] py-1 border-b border-[#DAD1C5]/30 flex justify-between items-center"
@@ -247,7 +248,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
             <button
               onClick={() => {
-                onNavigate("review-fragrance");
+                onNavigate('review-fragrance');
                 setMobileMenuOpen(false);
               }}
               className="text-left text-base font-serif text-[#28192A] py-1 border-b border-[#DAD1C5]/30 flex justify-between items-center"
@@ -257,17 +258,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
             <button
               onClick={() => {
-                onNavigate("cart");
+                onNavigate('cart');
                 setMobileMenuOpen(false);
               }}
               className="text-left text-base font-serif text-[#28192A] py-1 border-b border-[#DAD1C5]/30 flex justify-between items-center"
             >
-              <span>Shopping Bag {cartCount > 0 ? `(${cartCount})` : ""}</span>
+              <span>Shopping Bag {cartCount > 0 ? `(${cartCount})` : ''}</span>
               <span className="text-xs font-sans text-[#C9A25C]">05</span>
             </button>
             <button
               onClick={() => {
-                onNavigate("chat");
+                onNavigate('chat');
                 setMobileMenuOpen(false);
               }}
               className="text-left text-base font-serif text-[#28192A] py-1 border-b border-[#DAD1C5]/30 flex justify-between items-center"
@@ -277,7 +278,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
             <button
               onClick={() => {
-                onNavigate("about");
+                onNavigate('about');
                 setMobileMenuOpen(false);
               }}
               className="text-left text-base font-serif text-[#28192A] py-1 border-b border-[#DAD1C5]/30"
@@ -286,7 +287,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
             <button
               onClick={() => {
-                onNavigate("journal");
+                onNavigate('journal');
                 setMobileMenuOpen(false);
               }}
               className="text-left text-base font-serif text-[#28192A] py-1"
@@ -298,7 +299,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="pt-4 flex flex-col gap-3">
             <button
               onClick={() => {
-                onNavigate("scentify");
+                onNavigate('scentify');
                 setMobileMenuOpen(false);
               }}
               className="w-full py-3 bg-[#28192A] text-[#FBF7F0] text-xs uppercase tracking-[0.2em] font-medium text-center"
@@ -309,17 +310,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="flex items-center justify-between py-2.5 px-3 bg-[#FBF7F0] border border-[#DAD1C5] text-xs">
                 <button
                   onClick={() => {
-                    onNavigate("profile");
+                    onNavigate('profile');
                     setMobileMenuOpen(false);
                   }}
                   className="text-left hover:text-[#C9A25C] text-[#28192A] flex-1"
                 >
-                  <span className="text-[10px] uppercase font-mono text-[#6B6166] block">
-                    My Profile
-                  </span>
-                  <span>
-                    <strong>{userName}</strong> (Address &amp; Orders) →
-                  </span>
+                  <span className="text-[10px] uppercase font-mono text-[#6B6166] block">My Profile</span>
+                  <span><strong>{userName}</strong> (Address &amp; Orders) →</span>
                 </button>
                 {onLogout && (
                   <button
@@ -336,7 +333,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : !isAdminUser ? (
               <button
                 onClick={() => {
-                  onOpenAuth("signup");
+                  onOpenAuth('signup');
                   setMobileMenuOpen(false);
                 }}
                 className="w-full py-2.5 border border-[#28192A] text-[#28192A] text-xs uppercase tracking-[0.2em] text-center hover:bg-[#28192A] hover:text-[#FBF7F0] transition-colors"

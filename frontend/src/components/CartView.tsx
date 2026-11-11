@@ -1,3 +1,7 @@
+/*
+ * Team member: Thuta Naing (6831503029)
+ * Frontend tasks: cart item management and the order-item view before checkout.
+ */
 import React, { useState } from 'react';
 import { Minus, Plus, Trash2, ArrowRight, ShoppingBag, Check, Lock, Sparkles, UserCheck } from 'lucide-react';
 import { CartItem, ViewMode } from '../types';

@@ -1,3 +1,7 @@
+/*
+ * Team member: Thuta Naing (6831503029)
+ * Frontend tasks: perfume catalog, scent families, bottle options, and cart data.
+ */
 import { ScentFamily, CartItem, OrderDetails } from '../types';
 
 export const SCENT_FAMILIES: ScentFamily[] = [

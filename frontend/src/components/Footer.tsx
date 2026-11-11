@@ -1,3 +1,7 @@
+/*
+ * Team member: Saw Keh Blu (6831503087)
+ * Frontend tasks: footer content, links, and customer-facing studio information.
+ */
 import React from 'react';
 import { ViewMode } from '../types';
 

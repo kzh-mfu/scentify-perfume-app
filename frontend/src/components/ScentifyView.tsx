@@ -1,3 +1,7 @@
+/*
+ * Team members: Kyaw Zin Htike (6831503011) and Thuta Naing (6831503029)
+ * Frontend tasks: ingredient selection, fragrance composition, quantities, and prices.
+ */
 import React, { useState } from 'react';
 import { Check, Plus, ArrowRight, Sparkles, RefreshCw, AlertCircle, Info, Sliders, FlaskConical } from 'lucide-react';
 import { Composition, ViewMode, Ingredient, ScentFamily, BottleOption, CustomizationRule, MasterFormula } from '../types';

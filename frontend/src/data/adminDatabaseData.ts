@@ -1,3 +1,7 @@
+/*
+ * Team member: Ei Thandar Kyaw (6831502020)
+ * Frontend tasks: admin dashboard seed data for staff, orders, and management views.
+ */
 import {
   DbUser,
   DbOrder,

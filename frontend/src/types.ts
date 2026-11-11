@@ -1,3 +1,7 @@
+/*
+ * Shared frontend data contracts:
+ * member-owned types cover profiles, ingredients, orders/order items, and chat messages.
+ */
 export interface Ingredient {
   id: string;
   name: string;

@@ -1,3 +1,7 @@
+/*
+ * Team member: Ei Thandar Kyaw (6831502020)
+ * Frontend tasks: review order details, totals, and order confirmation before payment.
+ */
 import React, { useState } from 'react';
 import { Edit2, ShieldAlert, ArrowRight, Check } from 'lucide-react';
 import { OrderDetails, CartItem, ViewMode } from '../types';

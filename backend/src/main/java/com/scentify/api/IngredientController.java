@@ -2,7 +2,6 @@
  * Team member: Kyaw Zin Htike (6831503011)
  * Backend tasks: ingredient listing/searching, creation, updating, and deletion.
  */
-
 package com.scentify.api;
 
 import com.scentify.domain.Ingredient;
