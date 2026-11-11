@@ -22,7 +22,7 @@ Cloud deployment.
 
 GitHub repository:
 
-<https://github.com/KyawZinHtike1304/scentify-perfume-studio>
+https://github.com/kzh-mfu/scentify-perfume-app
 
 Each team member must commit to this repository to receive individual
 contribution credit.
