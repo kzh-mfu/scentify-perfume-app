@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Entity
 @Table(name = "studio_chat_messages")
@@ -41,6 +42,7 @@ public class ChatMessage {
     this.senderId = senderId;
     this.senderRole = senderRole;
     this.message = message;
+    this.createdAt = OffsetDateTime.now(ZoneOffset.UTC);
   }
 
   public String getId() {
