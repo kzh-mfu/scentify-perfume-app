@@ -24,6 +24,7 @@ import { AdminSidePanel } from './components/AdminSidePanel';
 
 import { firebaseAuth } from './firebase';
 import { backendApi } from './api';
+import { formatChatMessageTime } from './chatTime';
 import type { User } from './firebase';
 
 import {
@@ -298,10 +299,7 @@ export default function App() {
           id: row.id,
           sender: row.senderRole === 'admin' ? 'studio' : 'user',
           text: row.message,
-          timestamp: new Date(row.createdAt).toLocaleTimeString([], {
-            hour: 'numeric',
-            minute: '2-digit',
-          }),
+          timestamp: formatChatMessageTime(row.createdAt),
         })));
         setChatLoadError(null);
         }
@@ -560,10 +558,7 @@ export default function App() {
       id: data.id,
       sender: 'user',
       text: data.message,
-      timestamp: new Date(data.createdAt).toLocaleTimeString([], {
-        hour: 'numeric',
-        minute: '2-digit',
-      }),
+      timestamp: formatChatMessageTime(data.createdAt),
     };
     setChatMessages((previous) =>
       previous.some((message) => message.id === savedMessage.id)

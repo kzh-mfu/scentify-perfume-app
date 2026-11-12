@@ -5,6 +5,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Send, MessageCircle, RefreshCw } from 'lucide-react';
 import { backendApi } from '../api';
+import { formatChatMessageTime } from '../chatTime';
 
 interface StudioChatMessage {
   id: string;
@@ -23,15 +24,6 @@ interface CustomerProfile {
 
 interface AdminChatViewProps {
   adminName: string;
-}
-
-function formatMessageTime(value: string): string {
-  return new Date(value).toLocaleString([], {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
 }
 
 export const AdminChatView: React.FC<AdminChatViewProps> = ({ adminName }) => {
@@ -220,7 +212,7 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({ adminName }) => {
                     {latestMessage.message}
                   </span>
                   <span className="mt-2 block text-[10px] text-[#6B6166]/70">
-                    {formatMessageTime(latestMessage.created_at)}
+                    {formatChatMessageTime(latestMessage.created_at)}
                   </span>
                 </button>
               ))}
@@ -258,7 +250,7 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({ adminName }) => {
                         {message.message}
                       </div>
                       <time className="mt-1 px-1 text-[10px] text-[#6B6166]/70">
-                        {formatMessageTime(message.created_at)}
+                        {formatChatMessageTime(message.created_at)}
                       </time>
                     </div>
                   );
