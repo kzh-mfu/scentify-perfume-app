@@ -5,8 +5,6 @@
 package com.scentify.domain;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -54,7 +52,6 @@ public class Order {
   @Column(name = "verified_at")
   private OffsetDateTime verifiedAt;
 
-  @JdbcTypeCode(SqlTypes.JSON)
   @Column(nullable = false, columnDefinition = "text")
   private String items = "[]";
 
