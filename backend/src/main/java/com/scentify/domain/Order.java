@@ -46,7 +46,7 @@ public class Order {
   @Column(name = "payment_status", nullable = false)
   private String paymentStatus;
 
-  @Column(name = "payment_slip_url", columnDefinition = "text")
+  @Column(name = "payment_slip_url", columnDefinition = "mediumtext")
   private String paymentSlipUrl;
 
   @Column(name = "verified_at")
