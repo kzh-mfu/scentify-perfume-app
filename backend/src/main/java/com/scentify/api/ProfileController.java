@@ -34,8 +34,7 @@ public class ProfileController {
 
   @GetMapping
   public ProfileResponse get(Authentication authentication) {
-    Profile profile = profiles.findById(currentUser.id(authentication))
-        .orElseThrow(() -> new IllegalStateException("Profile not found."));
+    String userId = currentUser.id(authentication);
     String displayName = authentication.getName();
     if (authentication instanceof JwtAuthenticationToken jwt) {
       String tokenName = jwt.getToken().getClaimAsString("name");
@@ -48,6 +47,9 @@ public class ProfileController {
             : tokenEmail.length());
       }
     }
+    String initialDisplayName = displayName;
+    Profile profile = profiles.findById(userId)
+        .orElseGet(() -> profiles.save(new Profile(userId, initialDisplayName, "{}")));
     if (profile.getDisplayName().equals(profile.getId()) && !displayName.equals(profile.getId())) {
       profile.setDisplayName(displayName);
       profile = profiles.save(profile);

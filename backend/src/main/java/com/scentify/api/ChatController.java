@@ -78,7 +78,8 @@ public class ChatController {
   ) {
     currentUser.requireStaff(authentication);
     String senderId = currentUser.id(authentication);
-    ensureProfile(request.userId(), request.userId().toString());
+    ensureProfile(senderId, authentication.getName());
+    ensureProfile(request.userId(), request.userId());
     return response(messages.save(new ChatMessage(request.userId(), senderId, "admin", request.message())));
   }
 
@@ -97,7 +98,7 @@ public class ChatController {
   public record MessageRequest(@NotBlank String message) {
   }
 
-  public record AdminMessageRequest(String userId, @NotBlank String message) {
+  public record AdminMessageRequest(@NotBlank String userId, @NotBlank String message) {
   }
 
   public record MessageResponse(
