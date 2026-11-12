@@ -47,3 +47,10 @@ jobs:
             --project "$GOOGLE_CLOUD_PROJECT" \
             --format='value(status.url)')"
           curl --fail --silent --show-error "$service_url/api/health"
+          # A successful health check alone does not prove that the deployed
+          # revision contains the authenticated business API.
+          orders_status="$(curl --silent --show-error \
+            --output /dev/null \
+            --write-out '%{http_code}' \
+            "$service_url/api/orders")"
+          test "$orders_status" = "401"

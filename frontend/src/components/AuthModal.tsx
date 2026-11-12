@@ -76,6 +76,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (error) {
         throw error;
       }
+      if (!data.user) {
+        throw new Error('Admin sign-in did not return a user session.');
+      }
       const role = data.user.app_metadata?.role;
       if (role !== 'admin' && role !== 'staff' && role !== 'perfumer') {
         const { error: signOutError } = await firebaseAuth.auth.signOut();
@@ -137,6 +140,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         });
         if (error) {
           throw error;
+        }
+        if (!data.user) {
+          throw new Error('Sign-in did not return a user session.');
         }
         const displayName =
           data.user.user_metadata?.display_name ||

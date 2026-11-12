@@ -24,7 +24,7 @@ jobs:
       VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
       VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
       VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
-      VITE_API_URL: ${{ secrets.VITE_API_URL }}
+      VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://scentify-backend-595105589462.asia-southeast1.run.app' }}
 
     steps:
       - name: Check out repository

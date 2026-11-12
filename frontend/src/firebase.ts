@@ -117,7 +117,7 @@ export const firebaseAuth = {
       if (displayName) await updateProfile(credential.user, { displayName });
       return credentialResult(credential);
     },
-    async signInWithOAuth({ provider }: { provider: string }) {
+    async signInWithOAuth({ provider }: { provider: string; options?: { redirectTo?: string } }) {
       if (provider !== 'google') throw new Error('Only Google sign-in is supported.');
       return credentialResult(await signInWithPopup(requireAuth(), new GoogleAuthProvider()));
     },
@@ -126,7 +126,7 @@ export const firebaseAuth = {
       currentSession = null;
       return { error: null };
     },
-    async resetPasswordForEmail(email: string) {
+    async resetPasswordForEmail(email: string, _options?: { redirectTo?: string }) {
       await sendPasswordResetEmail(requireAuth(), email.trim());
       return { data: {}, error: null };
     },
@@ -136,7 +136,11 @@ export const firebaseAuth = {
 export async function updateShippingAddress(address: Record<string, string>) {
   const { data } = await firebaseAuth.auth.getSession();
   if (!data.session) throw new Error('You must be signed in to save a shipping address.');
-  const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/profile`, {
+  const apiBaseUrl = import.meta.env.VITE_API_URL
+    || (import.meta.env.PROD
+      ? 'https://scentify-backend-595105589462.asia-southeast1.run.app'
+      : 'http://localhost:8080');
+  const response = await fetch(`${apiBaseUrl}/api/profile`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',

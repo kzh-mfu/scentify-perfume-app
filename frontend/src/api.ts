@@ -6,7 +6,10 @@
 import { firebaseAuth } from './firebase';
 import type { CartItem } from './types';
 
-const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const apiBaseUrl = import.meta.env.VITE_API_URL
+  || (import.meta.env.PROD
+    ? 'https://scentify-backend-595105589462.asia-southeast1.run.app'
+    : 'http://localhost:8080');
 
 export interface ApiOrder {
   id: number;
