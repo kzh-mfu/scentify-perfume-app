@@ -87,6 +87,13 @@ const pathViews: Record<string, ViewMode> = Object.fromEntries(
   Object.entries(viewPaths).map(([view, path]) => [path, view]),
 ) as Record<string, ViewMode>;
 
+function createOrderNumber(): string {
+  const suffix = typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID().slice(0, 8)
+    : Math.random().toString(36).slice(2, 10);
+  return `SC-${Date.now()}-${suffix.toUpperCase()}`;
+}
+
 function viewForPath(pathname: string): ViewMode {
   return pathViews[pathname] || (pathname.startsWith('/admin') ? 'admin' : 'home');
 }
@@ -154,7 +161,10 @@ export default function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   // Active Order State
-  const [order, setOrder] = useState<OrderDetails>(INITIAL_ORDER);
+  const [order, setOrder] = useState<OrderDetails>(() => ({
+    ...INITIAL_ORDER,
+    orderId: createOrderNumber(),
+  }));
 
   // Relational Database State for Admin Panel
   const [dbOrders, setDbOrders] = useState<DbOrder[]>(INITIAL_DB_ORDERS);

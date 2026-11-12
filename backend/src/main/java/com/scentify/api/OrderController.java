@@ -15,6 +15,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -67,6 +68,12 @@ public class OrderController {
   @ResponseStatus(HttpStatus.CREATED)
   public OrderResponse create(Authentication authentication, @Valid @RequestBody CreateOrderRequest request) {
     var userId = currentUser.id(authentication);
+    if (orders.existsByOrderNumber(request.orderNumber())) {
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT,
+          "An order with this order number already exists."
+      );
+    }
     profiles.findById(userId).orElseGet(() ->
         profiles.save(new Profile(userId, request.customerName(), "{}")));
 
