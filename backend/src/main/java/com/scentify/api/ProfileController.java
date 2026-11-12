@@ -11,13 +11,12 @@ import com.scentify.repository.ProfileRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -37,6 +36,22 @@ public class ProfileController {
   public ProfileResponse get(Authentication authentication) {
     Profile profile = profiles.findById(currentUser.id(authentication))
         .orElseThrow(() -> new IllegalStateException("Profile not found."));
+    String displayName = authentication.getName();
+    if (authentication instanceof JwtAuthenticationToken jwt) {
+      String tokenName = jwt.getToken().getClaimAsString("name");
+      String tokenEmail = jwt.getToken().getClaimAsString("email");
+      if (tokenName != null && !tokenName.isBlank()) {
+        displayName = tokenName;
+      } else if (tokenEmail != null && !tokenEmail.isBlank()) {
+        displayName = tokenEmail.substring(0, tokenEmail.indexOf('@') > 0
+            ? tokenEmail.indexOf('@')
+            : tokenEmail.length());
+      }
+    }
+    if (profile.getDisplayName().equals(profile.getId()) && !displayName.equals(profile.getId())) {
+      profile.setDisplayName(displayName);
+      profile = profiles.save(profile);
+    }
     return response(profile);
   }
 

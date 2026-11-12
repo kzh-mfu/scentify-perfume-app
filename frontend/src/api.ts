@@ -35,6 +35,7 @@ export interface ApiMessage {
   senderRole: 'customer' | 'admin';
   message: string;
   createdAt: string;
+  customerName: string;
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {

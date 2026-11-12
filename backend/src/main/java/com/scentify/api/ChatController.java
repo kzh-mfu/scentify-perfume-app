@@ -87,8 +87,11 @@ public class ChatController {
   }
 
   private MessageResponse response(ChatMessage message) {
+    String customerName = profiles.findById(message.getUserId())
+        .map(Profile::getDisplayName)
+        .orElse("Customer " + message.getUserId().substring(0, Math.min(8, message.getUserId().length())));
     return new MessageResponse(message.getId(), message.getUserId(), message.getSenderId(),
-        message.getSenderRole(), message.getMessage(), message.getCreatedAt());
+        message.getSenderRole(), message.getMessage(), message.getCreatedAt(), customerName);
   }
 
   public record MessageRequest(@NotBlank String message) {
@@ -103,7 +106,8 @@ public class ChatController {
       String senderId,
       String senderRole,
       String message,
-      OffsetDateTime createdAt
+      OffsetDateTime createdAt,
+      String customerName
   ) {
   }
 }

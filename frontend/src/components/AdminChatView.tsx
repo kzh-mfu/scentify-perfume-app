@@ -13,6 +13,7 @@ interface StudioChatMessage {
   sender_role: 'customer' | 'admin';
   message: string;
   created_at: string;
+  customer_name: string;
 }
 
 interface CustomerProfile {
@@ -60,6 +61,7 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({ adminName }) => {
             sender_role: message.senderRole,
             message: message.message,
             created_at: message.createdAt,
+            customer_name: message.customerName,
           })));
           setIsLoading(false);
         }
@@ -136,6 +138,7 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({ adminName }) => {
         sender_role: data.senderRole,
         message: data.message,
         created_at: data.createdAt,
+        customer_name: data.customerName,
       };
       setMessages((current) =>
         current.some((item) => item.id === savedMessage.id)
@@ -157,7 +160,9 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({ adminName }) => {
   };
 
   const getCustomerName = (customerId: string) =>
-    profiles.get(customerId) || `Customer ${customerId.slice(0, 8)}`;
+    profiles.get(customerId) ||
+    messages.find((message) => message.user_id === customerId)?.customer_name ||
+    `Customer ${customerId.slice(0, 8)}`;
 
   return (
     <section className="space-y-6">
