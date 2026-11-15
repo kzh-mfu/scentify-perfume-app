@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 public class Ingredient {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
+  
   @Column(name = "ingredient_id")
   private Long id;
 
@@ -44,16 +45,30 @@ public class Ingredient {
     this.scentFamily = scentFamily;
     this.description = description;
     this.available = available;
-  }
+   }
 
   public Long getId() { return id; }
   public String getName() { return name; }
-  public void setName(String name) { this.name = name; }
+  public void setName(String name) { 
+    this.name = name; 
+    }
   public String getScentFamily() { return scentFamily; }
-  public void setScentFamily(String scentFamily) { this.scentFamily = scentFamily; }
+
+  public void setScentFamily(String scentFamily) { 
+    this.scentFamily = scentFamily; 
+    }
+
   public String getDescription() { return description; }
-  public void setDescription(String description) { this.description = description; }
+
+  public void setDescription(String description) {
+     this.description = description;
+     }
+
   public boolean isAvailable() { return available; }
-  public void setAvailable(boolean available) { this.available = available; }
+
+  public void setAvailable(boolean available) { 
+    this.available = available; 
+    }
+
   public LocalDateTime getCreatedAt() { return createdAt; }
 }

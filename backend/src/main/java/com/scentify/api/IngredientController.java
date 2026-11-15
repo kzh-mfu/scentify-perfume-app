@@ -16,7 +16,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/ingredients")
-@org.springframework.context.annotation.Profile("!local")
 public class IngredientController {
   private final IngredientRepository ingredients;
   private final CurrentUser currentUser;
