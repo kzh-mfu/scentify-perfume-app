@@ -3375,24 +3375,33 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
             <div className="flex items-center justify-between pt-4 border-t border-[#DAD1C5]/40 text-xs">
               <div className="flex items-center gap-2">
                 <span className="text-[#6B6166]">Status:</span>
-                <button
-                  onClick={() => handleUpdateOrderStatus(selectedOrder.order.order_id, 'processing')}
-                  className="px-2 py-1 bg-amber-100 text-amber-800 uppercase font-mono font-bold text-[10px]"
+                <select
+                  aria-label={`Order ${selectedOrder.order.order_id} status`}
+                  value={selectedOrder.order.status}
+                  onChange={(event) => {
+                    const orderId = selectedOrder.order.order_id;
+                    const status = event.target.value;
+                    if (status === 'cancelled') {
+                      void handleCancelOrder(orderId);
+                    } else if (status === 'processing' || status === 'completed') {
+                      void handleUpdateOrderStatus(orderId, status);
+                    }
+                  }}
+                  className={`cursor-pointer appearance-none border-0 px-2 py-1 uppercase font-mono font-bold text-[10px] focus:outline-none focus:ring-2 focus:ring-[#8B6F47] ${
+                    selectedOrder.order.status === 'completed'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : selectedOrder.order.status === 'processing'
+                        ? 'bg-amber-100 text-amber-800'
+                        : selectedOrder.order.status === 'cancelled'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-gray-100 text-gray-700'
+                  }`}
                 >
-                  Set Processing
-                </button>
-                <button
-                  onClick={() => handleUpdateOrderStatus(selectedOrder.order.order_id, 'completed')}
-                  className="px-2 py-1 bg-emerald-100 text-emerald-800 uppercase font-mono font-bold text-[10px]"
-                >
-                  Set Completed
-                </button>
-                <button
-                  onClick={() => handleCancelOrder(selectedOrder.order.order_id)}
-                  className="px-2 py-1 bg-red-100 text-red-800 uppercase font-mono font-bold text-[10px]"
-                >
-                  Cancel Order
-                </button>
+                  <option value="pending">Pending</option>
+                  <option value="processing">Processing</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancel Order</option>
+                </select>
               </div>
 
               <button

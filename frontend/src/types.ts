@@ -99,8 +99,7 @@ export type ViewMode =
 
 // Relational Database Diagram Entities
 export interface DbUser {
-  id: string;
-  id: number;
+  id: string | number;
   authUserId?: string;
   name: string;
   email: string;
@@ -112,7 +111,7 @@ export interface DbUser {
 export interface DbOrder {
   order_id: number;
   shipping_id: number;
-  user_id: string;
+  user_id: number;
   order_date: string;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   total_price: number;
