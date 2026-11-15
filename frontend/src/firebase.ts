@@ -18,6 +18,7 @@ import {
   type User as FirebaseUser,
   type UserCredential,
 } from 'firebase/auth';
+import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCEzABDHTQw8VagEz2YMliLgmr5-7WmsAg',
@@ -65,6 +66,33 @@ async function toSession(user: FirebaseUser | null): Promise<Session | null> {
 const firebaseApp = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
 const auth = firebaseApp ? getAuth(firebaseApp) : null;
 if (auth) void setPersistence(auth, browserLocalPersistence);
+
+export async function uploadChatAttachment(file: File, customerUid: string) {
+  if (!firebaseApp) throw new Error('Firebase Storage is not configured.');
+  const user = requireAuth().currentUser;
+  if (!user) throw new Error('You must be signed in to attach a photo.');
+
+  const { claims } = await user.getIdTokenResult();
+  if (!['admin', 'staff', 'perfumer'].includes(String(claims.role || ''))) {
+    throw new Error('Only studio staff can attach photos to customer messages.');
+  }
+
+  const extensions: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+  };
+  const extension = extensions[file.type];
+  if (!extension) throw new Error('Choose a JPG, PNG, or WebP image.');
+  if (file.size > 5 * 1024 * 1024) throw new Error('Images must be 5 MB or smaller.');
+
+  const imageRef = ref(
+    getStorage(firebaseApp),
+    `chat-attachments/${customerUid}/${crypto.randomUUID()}.${extension}`,
+  );
+  await uploadBytes(imageRef, file, { contentType: file.type });
+  return getDownloadURL(imageRef);
+}
 
 const listeners: Listener[] = [];
 let currentSession: Session | null = null;

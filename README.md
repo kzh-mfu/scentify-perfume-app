@@ -188,6 +188,13 @@ VITE_API_URL=http://localhost:8080
 The Firebase web configuration is available in Google Cloud under Identity
 Platform project settings.
 
+Admin chat photo attachments use Firebase Storage. Enable the configured
+Storage bucket and deploy its access rules with:
+
+```sh
+npx firebase-tools@latest deploy --only storage --project scentify-513806
+```
+
 ### Configure the backend
 
 The backend initializes Firebase Admin with Google Application Default

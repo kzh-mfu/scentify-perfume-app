@@ -5,8 +5,8 @@
 package com.scentify.api;
 
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.AuthErrorCode;
 import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.AuthErrorCode;
 import com.google.firebase.auth.UserRecord;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -36,20 +36,11 @@ public class StaffController {
       if ("disable".equals(request.action())) {
         requireUserId(request);
         FirebaseAuth.getInstance().updateUser(new UserRecord.UpdateRequest(request.userId()).setDisabled(true));
-        return new StaffResponse(request.userId());
+        return new StaffResponse(request.userId(), false);
       }
 
       if ("create".equals(request.action())) {
-        if (request.password() == null || request.password().length() < 6) {
-          throw new IllegalArgumentException("Staff passwords must be at least 6 characters.");
-        }
-        UserRecord.CreateRequest create = new UserRecord.CreateRequest()
-            .setEmail(request.email().trim().toLowerCase())
-            .setPassword(request.password())
-            .setDisplayName(request.name().trim());
-        UserRecord user = FirebaseAuth.getInstance().createUser(create);
-        setRole(user.getUid(), request.role());
-        return new StaffResponse(user.getUid());
+        return createStaffAccount(request);
       }
 
       if ("update".equals(request.action())) {
@@ -65,36 +56,25 @@ public class StaffController {
         }
         FirebaseAuth.getInstance().updateUser(update);
         setRole(request.userId(), request.role());
-        return new StaffResponse(request.userId());
+        return new StaffResponse(request.userId(), false);
       }
-      throw new IllegalArgumentException("Invalid staff action.");
-    } catch (IllegalArgumentException exception) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage(), exception);
-    } catch (FirebaseAuthException exception) {
-      AuthErrorCode errorCode = exception.getAuthErrorCode();
-      if (errorCode == AuthErrorCode.EMAIL_ALREADY_EXISTS) {
-        throw new ResponseStatusException(
-            HttpStatus.CONFLICT,
-            "A Firebase account already exists with this email.",
-            exception
-        );
-      }
-      if (errorCode == AuthErrorCode.USER_NOT_FOUND) {
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Firebase user was not found.", exception);
-      }
-      if (errorCode == AuthErrorCode.UID_ALREADY_EXISTS
-          || errorCode == AuthErrorCode.PHONE_NUMBER_ALREADY_EXISTS) {
-        throw new ResponseStatusException(
-            HttpStatus.CONFLICT,
-            "A Firebase account already exists with this user ID or phone number.",
-            exception
-        );
-      }
-      throw new ResponseStatusException(
-          HttpStatus.BAD_GATEWAY,
-          "Google Identity Platform rejected the staff account operation.",
-          exception
+      throw new org.springframework.web.server.ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Invalid staff action."
       );
+    } catch (org.springframework.web.server.ResponseStatusException exception) {
+      throw exception;
+    } catch (FirebaseAuthException exception) {
+      if (exception.getAuthErrorCode() == AuthErrorCode.EMAIL_ALREADY_EXISTS) {
+        throw new org.springframework.web.server.ResponseStatusException(
+            HttpStatus.CONFLICT, "An account with this email already exists.", exception
+        );
+      }
+      if (exception.getAuthErrorCode() == AuthErrorCode.USER_NOT_FOUND) {
+        throw new org.springframework.web.server.ResponseStatusException(
+            HttpStatus.NOT_FOUND, "Firebase account not found.", exception
+        );
+      }
+      throw new IllegalStateException("Google Identity Platform staff operation failed.", exception);
     } catch (Exception exception) {
       throw new ResponseStatusException(
           HttpStatus.BAD_GATEWAY,
@@ -104,13 +84,57 @@ public class StaffController {
     }
   }
 
-  private void setRole(String userId, String role) throws Exception {
+  private StaffResponse createStaffAccount(StaffRequest request) throws FirebaseAuthException {
+    FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
+    String email = request.email().trim().toLowerCase();
+    UserRecord user;
+    boolean existingAccount;
+    try {
+      user = firebaseAuth.getUserByEmail(email);
+      existingAccount = true;
+    } catch (FirebaseAuthException exception) {
+      if (exception.getAuthErrorCode() != AuthErrorCode.USER_NOT_FOUND
+          && exception.getAuthErrorCode() != AuthErrorCode.EMAIL_NOT_FOUND) {
+        throw exception;
+      }
+      if (request.password() == null || request.password().length() < 6) {
+        throw new org.springframework.web.server.ResponseStatusException(
+            HttpStatus.BAD_REQUEST, "New staff account passwords must be at least 6 characters."
+        );
+      }
+      try {
+        user = firebaseAuth.createUser(new UserRecord.CreateRequest()
+            .setEmail(email)
+            .setPassword(request.password())
+            .setDisplayName(request.name().trim()));
+        existingAccount = false;
+      } catch (FirebaseAuthException createException) {
+        if (createException.getAuthErrorCode() != AuthErrorCode.EMAIL_ALREADY_EXISTS) {
+          throw createException;
+        }
+        user = firebaseAuth.getUserByEmail(email);
+        existingAccount = true;
+      }
+    }
+
+    if (existingAccount) {
+      firebaseAuth.updateUser(new UserRecord.UpdateRequest(user.getUid())
+          .setDisplayName(request.name().trim())
+          .setDisabled(false));
+    }
+    setRole(user.getUid(), request.role());
+    return new StaffResponse(user.getUid(), existingAccount);
+  }
+
+  private void setRole(String userId, String role) throws FirebaseAuthException {
     FirebaseAuth.getInstance().setCustomUserClaims(userId, java.util.Map.of("role", role));
   }
 
   private void requireUserId(StaffRequest request) {
     if (request.userId() == null || request.userId().isBlank()) {
-      throw new IllegalArgumentException("A user ID is required.");
+      throw new org.springframework.web.server.ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "A user ID is required."
+      );
     }
   }
 
@@ -125,5 +149,5 @@ public class StaffController {
       @NotNull String phone
   ) {}
 
-  public record StaffResponse(String userId) {}
+  public record StaffResponse(String userId, boolean existingAccount) {}
 }

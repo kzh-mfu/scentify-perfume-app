@@ -34,6 +34,7 @@ export interface ApiMessage {
   senderId: string;
   senderRole: 'customer' | 'admin';
   message: string;
+  attachmentUrl?: string | null;
   createdAt: string;
   customerName: string;
 }
@@ -143,10 +144,10 @@ export const backendApi = {
       body: JSON.stringify({ message }),
     }),
   getAdminChatMessages: () => request<ApiMessage[]>('/api/chat/admin/messages'),
-  sendAdminChatMessage: (userId: string, message: string) =>
+  sendAdminChatMessage: (userId: string, message: string, attachmentUrl?: string) =>
     request<ApiMessage>('/api/chat/admin/messages', {
       method: 'POST',
-      body: JSON.stringify({ userId, message }),
+      body: JSON.stringify({ userId, message, attachmentUrl }),
     }),
   saveStaff: (staff: {
     action: 'create' | 'update' | 'disable';
@@ -157,7 +158,7 @@ export const backendApi = {
     role: string;
     title: string;
     phone: string;
-  }) => request<{ userId: string }>('/api/admin/staff', {
+  }) => request<{ userId: string; existingAccount: boolean }>('/api/admin/staff', {
     method: 'POST',
     body: JSON.stringify(staff),
   }),

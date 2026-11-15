@@ -500,6 +500,7 @@ export default function App() {
             id: row.id,
             sender: row.senderRole === 'admin' ? 'studio' : 'user',
             text: row.message,
+            attachmentUrl: row.attachmentUrl || undefined,
             timestamp: formatChatMessageTime(row.createdAt),
           })));
           setChatLoadError(null);
@@ -757,6 +758,7 @@ export default function App() {
       id: data.id,
       sender: 'user',
       text: data.message,
+      attachmentUrl: data.attachmentUrl || undefined,
       timestamp: formatChatMessageTime(data.createdAt),
     };
     setChatMessages((previous) =>

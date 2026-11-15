@@ -82,6 +82,7 @@ export interface ChatMessage {
   id: string;
   sender: 'user' | 'studio';
   text: string;
+  attachmentUrl?: string;
   timestamp: string;
 }
 

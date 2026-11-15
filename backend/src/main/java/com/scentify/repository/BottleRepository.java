@@ -4,4 +4,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 public interface BottleRepository extends JpaRepository<Bottle, Long> {
   List<Bottle> findByAvailableTrueOrderBySizeAsc();
+  List<Bottle> findByAdminManagedTrueOrderBySizeAsc();
+  boolean existsBySizeAndBottleTypeAndAdminManagedTrue(Integer size, String bottleType);
+  boolean existsBySizeAndBottleTypeAndAdminManagedTrueAndIdNot(
+      Integer size,
+      String bottleType,
+      Long id
+  );
 }

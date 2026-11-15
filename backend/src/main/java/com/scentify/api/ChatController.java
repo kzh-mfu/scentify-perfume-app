@@ -10,6 +10,7 @@ import com.scentify.repository.ChatMessageRepository;
 import com.scentify.repository.ProfileRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,7 +20,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.net.URI;
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -80,7 +83,14 @@ public class ChatController {
     String senderId = currentUser.id(authentication);
     ensureProfile(senderId, authentication.getName());
     ensureProfile(request.userId(), request.userId());
-    return response(messages.save(new ChatMessage(request.userId(), senderId, "admin", request.message())));
+    String message = request.message() == null ? "" : request.message().trim();
+    String attachmentUrl = validateAttachmentUrl(request.attachmentUrl(), request.userId());
+    if (message.isEmpty() && attachmentUrl == null) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Add a message or attach a photo.");
+    }
+    return response(messages.save(new ChatMessage(
+        request.userId(), senderId, "admin", message, attachmentUrl
+    )));
   }
 
   private void ensureProfile(String id, String displayName) {
@@ -92,13 +102,35 @@ public class ChatController {
         .map(Profile::getDisplayName)
         .orElse("Customer " + message.getUserId().substring(0, Math.min(8, message.getUserId().length())));
     return new MessageResponse(message.getId(), message.getUserId(), message.getSenderId(),
-        message.getSenderRole(), message.getMessage(), message.getCreatedAt(), customerName);
+        message.getSenderRole(), message.getMessage(), message.getAttachmentUrl(),
+        message.getCreatedAt(), customerName);
+  }
+
+  private String validateAttachmentUrl(String attachmentUrl, String customerUid) {
+    if (attachmentUrl == null || attachmentUrl.isBlank()) return null;
+    try {
+      URI uri = URI.create(attachmentUrl);
+      if (!"https".equalsIgnoreCase(uri.getScheme())
+          || !"firebasestorage.googleapis.com".equalsIgnoreCase(uri.getHost())
+          || !uri.getPath().contains("/o/chat-attachments/" + customerUid + "/")) {
+        throw new IllegalArgumentException();
+      }
+      return uri.toString();
+    } catch (IllegalArgumentException exception) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Photo attachments must use Firebase Storage."
+      );
+    }
   }
 
   public record MessageRequest(@NotBlank String message) {
   }
 
-  public record AdminMessageRequest(@NotBlank String userId, @NotBlank String message) {
+  public record AdminMessageRequest(
+      @NotBlank String userId,
+      @Size(max = 10000) String message,
+      @Size(max = 2048) String attachmentUrl
+  ) {
   }
 
   public record MessageResponse(
@@ -107,6 +139,7 @@ public class ChatController {
       String senderId,
       String senderRole,
       String message,
+      String attachmentUrl,
       OffsetDateTime createdAt,
       String customerName
   ) {

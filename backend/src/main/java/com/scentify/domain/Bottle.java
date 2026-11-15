@@ -25,6 +25,9 @@ public class Bottle {
   @Column(name = "is_available", nullable = false) 
   private boolean available = true;
 
+  @Column(name = "admin_managed", nullable = false)
+  private boolean adminManaged = true;
+
   @Column(length = 1000) 
   private String description;
 
@@ -49,6 +52,8 @@ public class Bottle {
   public void setPrice(BigDecimal v){price=v;}
   public boolean isAvailable(){return available;} 
   public void setAvailable(boolean v){available=v;}
+  public boolean isAdminManaged(){return adminManaged;}
+  public void setAdminManaged(boolean v){adminManaged=v;}
   public String getDescription(){return description;} 
   public void setDescription(String v){description=v;}
   public OffsetDateTime getCreatedAt(){return createdAt;}

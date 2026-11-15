@@ -7,6 +7,7 @@ on:
     paths:
       - 'frontend/**'
       - 'firebase.json'
+      - 'storage.rules'
       - '.firebaserc'
       - '.github/workflows/firebase-hosting.yml'
 
@@ -51,4 +52,4 @@ jobs:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
       - name: Deploy to Firebase Hosting
-        run: npx firebase-tools@latest deploy --only hosting --project "$FIREBASE_PROJECT_ID"
+        run: npx firebase-tools@latest deploy --only hosting,storage --project "$FIREBASE_PROJECT_ID"

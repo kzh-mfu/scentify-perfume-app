@@ -144,6 +144,13 @@ export const CustomerCareView: React.FC<CustomerCareViewProps> = ({
                           : 'bg-[#FBF7F0] text-[#28192A] border border-[#DAD1C5] rounded-none shadow-2xs'
                       }`}
                     >
+                      {msg.attachmentUrl && (
+                        <img
+                          src={msg.attachmentUrl}
+                          alt="Prepared perfume photo from the studio"
+                          className="mb-2 max-h-72 max-w-full object-contain"
+                        />
+                      )}
                       {msg.text}
                     </div>
                     <span className="text-[10px] text-[#6B6166]/60 mt-1 px-1 font-mono">

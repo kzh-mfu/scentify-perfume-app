@@ -3,9 +3,10 @@
  * Frontend tasks: customer chat display, message creation, and staff replies.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Send, MessageCircle, RefreshCw } from 'lucide-react';
+import { Send, MessageCircle, RefreshCw, Paperclip, X } from 'lucide-react';
 import { backendApi } from '../api';
 import { formatChatMessageTime } from '../chatTime';
+import { uploadChatAttachment } from '../firebase';
 
 interface StudioChatMessage {
   id: string;
@@ -13,6 +14,7 @@ interface StudioChatMessage {
   sender_id: string;
   sender_role: 'customer' | 'admin';
   message: string;
+  attachment_url?: string;
   created_at: string;
   customer_name: string;
 }
@@ -39,10 +41,20 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({
     initialCustomerId || null
   );
   const [inputText, setInputText] = useState('');
+  const [selectedAttachment, setSelectedAttachment] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const attachmentPreviewUrl = useMemo(
+    () => selectedAttachment ? URL.createObjectURL(selectedAttachment) : null,
+    [selectedAttachment],
+  );
+
+  useEffect(() => () => {
+    if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
+  }, [attachmentPreviewUrl]);
 
   useEffect(() => {
     let active = true;
@@ -60,6 +72,7 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({
             sender_id: message.senderId,
             sender_role: message.senderRole,
             message: message.message,
+            attachment_url: message.attachmentUrl || undefined,
             created_at: message.createdAt,
             customer_name: message.customerName,
           })));
@@ -147,18 +160,22 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({
   const sendReply = async (event: React.FormEvent) => {
     event.preventDefault();
     const message = inputText.trim();
-    if (!message || !selectedCustomerId || isSending) return;
+    if ((!message && !selectedAttachment) || !selectedCustomerId || isSending) return;
 
     setIsSending(true);
     setErrorMessage(null);
     try {
-      const data = await backendApi.sendAdminChatMessage(selectedCustomerId, message);
+      const attachmentUrl = selectedAttachment
+        ? await uploadChatAttachment(selectedAttachment, selectedCustomerId)
+        : undefined;
+      const data = await backendApi.sendAdminChatMessage(selectedCustomerId, message, attachmentUrl);
       const savedMessage: StudioChatMessage = {
         id: data.id,
         user_id: data.userId,
         sender_id: data.senderId,
         sender_role: data.senderRole,
         message: data.message,
+        attachment_url: data.attachmentUrl || undefined,
         created_at: data.createdAt,
         customer_name: data.customerName,
       };
@@ -171,6 +188,7 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({
             )
       );
       setInputText('');
+      setSelectedAttachment(null);
     } catch (error) {
       console.error('Failed to send admin chat reply:', error);
       setErrorMessage(
@@ -234,7 +252,9 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({
                   </span>
                   <span className="mt-1 block truncate text-xs text-[#6B6166]">
                     {latestMessage.sender_role === 'admin' ? 'You: ' : ''}
-                    {latestMessage.message}
+                    {latestMessage.attachment_url
+                      ? latestMessage.message || 'Prepared perfume photo'
+                      : latestMessage.message}
                   </span>
                   <span className="mt-2 block text-[10px] text-[#6B6166]/70">
                     {formatChatMessageTime(latestMessage.created_at)}
@@ -272,6 +292,19 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({
                             : 'border border-[#DAD1C5] bg-white/60 text-[#28192A]'
                         }`}
                       >
+                        {message.attachment_url && (
+                          <a
+                            href={message.attachment_url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <img
+                              src={message.attachment_url}
+                              alt="Prepared perfume attachment"
+                              className="mb-2 max-h-72 max-w-full object-contain"
+                            />
+                          </a>
+                        )}
                         {message.message}
                       </div>
                       <time className="mt-1 px-1 text-[10px] text-[#6B6166]/70">
@@ -282,23 +315,77 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({
                 })}
                 <div ref={messagesEndRef} />
               </div>
-              <form onSubmit={sendReply} className="flex gap-2 border-t border-[#DAD1C5] p-4">
-                <input
-                  value={inputText}
-                  onChange={(event) => setInputText(event.target.value)}
-                  aria-label="Reply to customer"
-                  placeholder="Write a reply…"
-                  className="min-w-0 flex-1 border border-[#DAD1C5] bg-white/60 px-3 py-2 text-sm text-[#28192A] outline-none focus:border-[#C9A25C]"
-                />
-                <button
-                  type="submit"
-                  disabled={!inputText.trim() || isSending}
-                  className="flex items-center gap-2 bg-[#28192A] px-4 py-2 text-xs font-medium uppercase tracking-wide text-[#FFFDF8] transition-colors hover:bg-[#3D2540] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Send className="h-4 w-4" />
-                  {isSending ? 'Sending' : 'Send'}
-                </button>
-              </form>
+              <div className="border-t border-[#DAD1C5] p-4">
+                {selectedAttachment && attachmentPreviewUrl && (
+                  <div className="mb-3 flex items-center gap-3 border border-[#DAD1C5] bg-white/60 p-2">
+                    <img
+                      src={attachmentPreviewUrl}
+                      alt="Selected photo preview"
+                      className="h-14 w-14 object-cover"
+                    />
+                    <span className="min-w-0 flex-1 truncate text-xs text-[#6B6166]">
+                      {selectedAttachment.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAttachment(null)}
+                      aria-label="Remove attached photo"
+                      className="p-1 text-[#6B6166] hover:text-[#28192A]"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+                <form onSubmit={sendReply} className="flex gap-2">
+                  <input
+                    ref={attachmentInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    aria-label="Choose a prepared perfume photo"
+                    onChange={(event) => {
+                      const file = event.currentTarget.files?.[0];
+                      event.currentTarget.value = '';
+                      if (!file) return;
+                      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                        setErrorMessage('Choose a JPG, PNG, or WebP image.');
+                        return;
+                      }
+                      if (file.size > 5 * 1024 * 1024) {
+                        setErrorMessage('Images must be 5 MB or smaller.');
+                        return;
+                      }
+                      setSelectedAttachment(file);
+                      setErrorMessage(null);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => attachmentInputRef.current?.click()}
+                    disabled={isSending}
+                    aria-label="Attach prepared perfume photo"
+                    title="Attach prepared perfume photo"
+                    className="border border-[#DAD1C5] px-3 text-[#28192A] transition-colors hover:bg-white/60 disabled:opacity-50"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </button>
+                  <input
+                    value={inputText}
+                    onChange={(event) => setInputText(event.target.value)}
+                    aria-label="Reply to customer"
+                    placeholder="Write a reply…"
+                    className="min-w-0 flex-1 border border-[#DAD1C5] bg-white/60 px-3 py-2 text-sm text-[#28192A] outline-none focus:border-[#C9A25C]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={(!inputText.trim() && !selectedAttachment) || isSending}
+                    className="flex items-center gap-2 bg-[#28192A] px-4 py-2 text-xs font-medium uppercase tracking-wide text-[#FFFDF8] transition-colors hover:bg-[#3D2540] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Send className="h-4 w-4" />
+                    {isSending ? 'Sending' : 'Send'}
+                  </button>
+                </form>
+              </div>
             </>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center p-8 text-center text-[#6B6166]">
