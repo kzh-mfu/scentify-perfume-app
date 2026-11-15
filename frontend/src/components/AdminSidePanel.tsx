@@ -1031,16 +1031,19 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
       showToast('Please provide both name and email.');
       return;
     }
+    if (!editingAdmin && adminStaffUsers.some(
+      (staff) => staff.email.trim().toLowerCase() === adminForm.email.trim().toLowerCase()
+    )) {
+      showToast('This email is already listed. Edit the existing staff account instead.');
+      return;
+    }
 
     setIsSavingAdmin(true);
     let updated: AdminStaffUser[];
     try {
       let authUserId = editingAdmin?.authUserId;
       const needsAuthAccount = !editingAdmin?.authUserId;
-      if (needsAuthAccount && adminForm.password.length < 6) {
-        showToast('Enter a password with at least 6 characters to create a login.');
-        return;
-      }
+      let existingAuthAccount = false;
 
       if (editingAdmin) {
         const data = await backendApi.saveStaff({
@@ -1054,6 +1057,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
           phone: adminForm.phone.trim(),
         });
         authUserId = data.userId;
+        existingAuthAccount = data.existingAccount;
         updated = adminStaffUsers.map((staff) =>
           staff.id === editingAdmin.id
             ? {
@@ -1078,6 +1082,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
           phone: adminForm.phone.trim(),
         });
         authUserId = data.userId;
+        existingAuthAccount = data.existingAccount;
         const nextId =
           adminStaffUsers.length > 0 ? Math.max(...adminStaffUsers.map((staff) => staff.id)) + 1 : 100;
         const newAdmin: AdminStaffUser = {
@@ -1110,7 +1115,9 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
       onUpdateAdminStaffUsers?.(updated);
       setIsAdminModalOpen(false);
       showToast(
-        needsAuthAccount
+        existingAuthAccount
+          ? `Existing login for "${adminForm.name}" now has staff access. They should use their current password.`
+          : needsAuthAccount
           ? `Login account created for "${adminForm.name}". They can sign in with this email and password.`
           : `Staff member "${adminForm.name}" updated.`
       );
@@ -3255,7 +3262,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
                     placeholder={
                       editingAdmin?.authUserId
                         ? 'Leave blank to keep the current password'
-                        : 'Required to create a login account'
+                        : 'Leave blank for an existing account; otherwise required'
                     }
                     value={adminForm.password}
                     onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}

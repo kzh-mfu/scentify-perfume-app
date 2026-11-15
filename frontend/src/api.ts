@@ -146,7 +146,7 @@ export const backendApi = {
     role: string;
     title: string;
     phone: string;
-  }) => request<{ userId: string }>('/api/admin/staff', {
+  }) => request<{ userId: string; existingAccount: boolean }>('/api/admin/staff', {
     method: 'POST',
     body: JSON.stringify(staff),
   }),
