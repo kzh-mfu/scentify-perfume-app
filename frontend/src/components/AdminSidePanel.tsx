@@ -84,6 +84,11 @@ import {
   buildEnrichedOrders,
 } from '../data/adminDatabaseData';
 
+function formatLocalDateInput(date: Date): string {
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 10);
+}
+
 interface AdminSidePanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -276,8 +281,14 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
     'orders' | 'scents' | 'ingredients' | 'bottles'
   >('orders');
   const [reportStatusFilter, setReportStatusFilter] = useState<string>('all');
-  const [customStartDate, setCustomStartDate] = useState<string>('2026-10-01');
-  const [customEndDate, setCustomEndDate] = useState<string>('2026-10-31');
+  const [customStartDate, setCustomStartDate] = useState<string>(() => {
+    const firstOfMonth = new Date();
+    firstOfMonth.setDate(1);
+    return formatLocalDateInput(firstOfMonth);
+  });
+  const [customEndDate, setCustomEndDate] = useState<string>(() =>
+    formatLocalDateInput(new Date())
+  );
 
   // -------------------------------------------------------------
   // BOTTLE & PRICING MODAL STATE
@@ -415,14 +426,19 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
   // REPORT FILTERED ORDERS FOR SALES TAB
   // -------------------------------------------------------------
   const reportFilteredOrders = useMemo(() => {
-    const now = new Date('2026-10-30T00:00:00Z');
+    const now = new Date();
 
     return enrichedOrders.filter((eo) => {
       const orderDate = new Date(eo.order.order_date);
+      if (reportPeriod !== 'all' && !Number.isFinite(orderDate.getTime())) return false;
 
       // Period filter
       if (reportPeriod === 'today') {
-        if (orderDate.toDateString() !== now.toDateString()) return false;
+        if (
+          orderDate.getFullYear() !== now.getFullYear() ||
+          orderDate.getMonth() !== now.getMonth() ||
+          orderDate.getDate() !== now.getDate()
+        ) return false;
       } else if (reportPeriod === '7days') {
         const diffDays = (now.getTime() - orderDate.getTime()) / (1000 * 3600 * 24);
         if (diffDays > 7 || diffDays < 0) return false;
@@ -431,14 +447,19 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
         if (diffDays > 30 || diffDays < 0) return false;
       } else if (reportPeriod === 'month') {
         if (
-          orderDate.getUTCMonth() !== now.getUTCMonth() ||
-          orderDate.getUTCFullYear() !== now.getUTCFullYear()
+          orderDate.getMonth() !== now.getMonth() ||
+          orderDate.getFullYear() !== now.getFullYear()
         )
           return false;
       } else if (reportPeriod === 'custom') {
-        const start = new Date(customStartDate);
-        const end = new Date(customEndDate);
-        end.setHours(23, 59, 59, 999);
+        if (!customStartDate || !customEndDate) return false;
+        const start = new Date(`${customStartDate}T00:00:00`);
+        const end = new Date(`${customEndDate}T23:59:59.999`);
+        if (
+          !Number.isFinite(start.getTime()) ||
+          !Number.isFinite(end.getTime()) ||
+          start > end
+        ) return false;
         if (orderDate < start || orderDate > end) return false;
       }
 
@@ -1494,7 +1515,9 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
                     <option value="today">Today Only</option>
                     <option value="7days">Last 7 Days</option>
                     <option value="30days">Last 30 Days</option>
-                    <option value="month">Current Month (October 2026)</option>
+                    <option value="month">
+                      Current Month ({new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })})
+                    </option>
                     <option value="custom">Custom Date Range...</option>
                   </select>
                 </div>
