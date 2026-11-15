@@ -38,6 +38,15 @@ export interface ApiMessage {
   customerName: string;
 }
 
+export interface ApiMember {
+  userId: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  role: 'customer';
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const { data, error } = await firebaseAuth.auth.getSession();
   if (error) throw error;
@@ -62,6 +71,7 @@ export const backendApi = {
   getProfile: () => request<{ id: string; displayName: string; shippingAddress: Record<string, string> }>('/api/profile'),
   getMyOrders: () => request<ApiOrder[]>('/api/orders/mine'),
   getOrders: () => request<ApiOrder[]>('/api/orders'),
+  getMembers: () => request<ApiMember[]>('/api/admin/members'),
   createOrder: (order: {
     orderNumber: string;
     customerName: string;
@@ -115,6 +125,8 @@ export const backendApi = {
   deleteMasterFormula: (id: number) =>
     request<void>(`/api/formulas/catalog/${id}`, { method: 'DELETE' }),
   getPayments: () => request<ApiPayment[]>('/api/payments'),
+  getPaymentReceipt: (id: number) =>
+    request<{ receiptUrl: string | null }>(`/api/payments/${id}/receipt`),
   createPayment: (payment: { orderId: number; paymentMethod: string; receiptUrl?: string; transactionReference?: string }) =>
     request<ApiPayment>('/api/payments', { method: 'POST', body: JSON.stringify(payment) }),
   verifyPayment: (id: number) => request<ApiPayment>(`/api/payments/${id}/verify`, { method: 'PATCH' }),

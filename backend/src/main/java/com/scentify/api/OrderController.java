@@ -66,12 +66,12 @@ public class OrderController {
   @GetMapping
   public List<OrderResponse> list(Authentication authentication) {
     currentUser.requireStaff(authentication);
-    return orders.findAllByOrderByCreatedAtDesc().stream().map(this::response).toList();
+    return orders.findAllSummaries().stream().map(this::response).toList();
   }
 
   @GetMapping("/mine")
   public List<OrderResponse> mine(Authentication authentication) {
-    return orders.findByUserIdOrderByCreatedAtDesc(currentUser.id(authentication)).stream()
+    return orders.findSummariesByUserId(currentUser.id(authentication)).stream()
         .map(this::response).toList();
   }
 
@@ -167,8 +167,19 @@ public class OrderController {
       return new OrderResponse(order.getId(), order.getOrderNumber(), order.getUserId(),
           order.getCustomerName(), order.getCustomerEmail(), order.getCustomerPhone(),
           order.getShippingAddress(), order.getTotal(), order.getStatus(), order.getPaymentStatus(),
-          order.getPaymentSlipUrl(), order.getVerifiedAt(), objectMapper.readTree(order.getItems()),
+          null, order.getVerifiedAt(), objectMapper.readTree(order.getItems()),
           order.getCreatedAt());
+    } catch (Exception exception) {
+      throw new IllegalStateException("Stored order items are invalid.", exception);
+    }
+  }
+
+  private OrderResponse response(OrderRepository.OrderSummary order) {
+    try {
+      return new OrderResponse(order.getId(), order.getOrderNumber(), order.getUserId(),
+          order.getCustomerName(), order.getCustomerEmail(), order.getCustomerPhone(),
+          order.getShippingAddress(), order.getTotal(), order.getStatus(), order.getPaymentStatus(),
+          null, order.getVerifiedAt(), objectMapper.readTree(order.getItems()), order.getCreatedAt());
     } catch (Exception exception) {
       throw new IllegalStateException("Stored order items are invalid.", exception);
     }

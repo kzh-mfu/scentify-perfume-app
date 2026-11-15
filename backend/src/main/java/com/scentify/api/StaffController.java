@@ -5,6 +5,8 @@
 package com.scentify.api;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.AuthErrorCode;
+import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.UserRecord;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -14,6 +16,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/admin/staff")
@@ -65,8 +68,39 @@ public class StaffController {
         return new StaffResponse(request.userId());
       }
       throw new IllegalArgumentException("Invalid staff action.");
+    } catch (IllegalArgumentException exception) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage(), exception);
+    } catch (FirebaseAuthException exception) {
+      AuthErrorCode errorCode = exception.getAuthErrorCode();
+      if (errorCode == AuthErrorCode.EMAIL_ALREADY_EXISTS) {
+        throw new ResponseStatusException(
+            HttpStatus.CONFLICT,
+            "A Firebase account already exists with this email.",
+            exception
+        );
+      }
+      if (errorCode == AuthErrorCode.USER_NOT_FOUND) {
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Firebase user was not found.", exception);
+      }
+      if (errorCode == AuthErrorCode.UID_ALREADY_EXISTS
+          || errorCode == AuthErrorCode.PHONE_NUMBER_ALREADY_EXISTS) {
+        throw new ResponseStatusException(
+            HttpStatus.CONFLICT,
+            "A Firebase account already exists with this user ID or phone number.",
+            exception
+        );
+      }
+      throw new ResponseStatusException(
+          HttpStatus.BAD_GATEWAY,
+          "Google Identity Platform rejected the staff account operation.",
+          exception
+      );
     } catch (Exception exception) {
-      throw new IllegalStateException("Google Identity Platform staff operation failed.", exception);
+      throw new ResponseStatusException(
+          HttpStatus.BAD_GATEWAY,
+          "Google Identity Platform staff operation failed.",
+          exception
+      );
     }
   }
 
