@@ -22,6 +22,7 @@ export const ReviewFragranceView: React.FC<ReviewFragranceViewProps> = ({
   bottles = [],
 }) => {
   const activeBottles = bottles.filter((b) => b.inStock);
+  const sortedBottles = [...activeBottles].sort((a, b) => a.volume - b.volume);
   const defaultSize =
     activeBottles.find((b) => b.size === composition.bottleSize)?.size ||
     activeBottles[0]?.size ||
@@ -174,7 +175,7 @@ export const ReviewFragranceView: React.FC<ReviewFragranceViewProps> = ({
                     Select Bottle Capacity:
                   </span>
                   <div className="flex flex-wrap gap-2">
-                    {activeBottles.map((b) => (
+                    {sortedBottles.map((b) => (
                       <button
                         key={b.bottle_id}
                         onClick={() => setSelectedBottleId(b.bottle_id)}
