@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/admin/staff")
@@ -75,7 +76,11 @@ public class StaffController {
       }
       throw new IllegalStateException("Google Identity Platform staff operation failed.", exception);
     } catch (Exception exception) {
-      throw new IllegalStateException("Google Identity Platform staff operation failed.", exception);
+      throw new ResponseStatusException(
+          HttpStatus.BAD_GATEWAY,
+          "Google Identity Platform staff operation failed.",
+          exception
+      );
     }
   }
 

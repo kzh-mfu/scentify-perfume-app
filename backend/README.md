@@ -15,8 +15,14 @@ cd backend
 mvn spring-boot:run
 ```
 
-For a local UI/API smoke test without MySQL or an OAuth issuer, run the
-local profile:
+For full local functionality, use the default profile and a local MySQL
+database. Do not activate the `local` profile for catalog or checkout work:
+that profile disables the database, JPA, and Flyway, and excludes the
+persistent bottle and formula APIs. Flyway seeds the local bottle catalog on
+the first startup.
+
+The `local` profile is only for a health/API smoke test without persistence or
+JWT authentication:
 
 ```sh
 cd backend
@@ -60,7 +66,7 @@ Identity Platform JWTs:
 - `GET|POST /api/chat/admin/messages`
 - `POST /api/admin/staff`
 
-Flyway migration V4 seeds the bottle and master-formula catalogs, including
+Flyway migration V5 seeds the bottle and master-formula catalogs, including
 their formula-detail ingredient links. Payments and shipping records are
 created from real orders rather than seeded as standalone records.
 

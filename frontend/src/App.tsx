@@ -225,6 +225,8 @@ export default function App() {
   // Relational Database State for Admin Panel
   const [dbOrders, setDbOrders] = useState<DbOrder[]>([]);
   const [dbUsers, setDbUsers] = useState<DbUser[]>(INITIAL_DB_USERS);
+  const [ordersLoadError, setOrdersLoadError] = useState<string | null>(null);
+  const [membersLoadError, setMembersLoadError] = useState<string | null>(null);
   const [dbShippings, setDbShippings] = useState<DbShipping[]>([]);
   const [dbPayments, setDbPayments] = useState<DbPayment[]>([]);
   const [dbIngredients, setDbIngredients] = useState<DbIngredient[]>(INITIAL_DB_INGREDIENTS);
@@ -652,57 +654,60 @@ export default function App() {
           try {
             const rows = await backendApi.getOrders();
             if (active) {
-            const savedOrders = rows.map((row) => {
-              const id = Number(row.id);
-              const adminId = row.userId;
-              const status: DbOrder['status'] =
-                row.status === 'processing' ||
-                row.status === 'completed' ||
-                row.status === 'cancelled'
-                  ? row.status
-                  : 'pending';
+              setDbOrders(rows.map((row) => ({
+                order_id: Number(row.id),
+                user_id: row.userId,
+                order_date: row.createdAt,
+                status:
+                  row.status === 'processing' ||
+                  row.status === 'completed' ||
+                  row.status === 'cancelled'
+                    ? row.status
+                    : 'pending',
+                total_price: Number(row.total),
+                prep_photo_url: '',
+                items: parseOrderItems(row.items),
+              } satisfies DbOrder)));
+              setOrdersLoadError(null);
+            }
+          } catch (error) {
+            console.error('Failed to load orders:', error);
+            if (active) {
+              setOrdersLoadError(
+                `Could not load orders: ${error instanceof Error ? error.message : 'Unexpected error'}`
+              );
+            }
+          }
 
-              return {
-                row,
-                adminId,
-                order: {
-                  order_id: id,
-                  shipping_id: undefined,
-                  user_id: adminId,
-                  order_date: row.createdAt,
-                  status,
-                  total_price: Number(row.total),
-                  prep_photo_url: '',
-                  items: parseOrderItems(row.items),
-                } satisfies DbOrder,
-              };
-              });
+          try {
+            const members = await backendApi.getMembers();
+            if (active) {
+              setDbUsers(members.map((member) => ({
+                id: member.userId,
+                authUserId: member.userId,
+                name: member.name,
+                email: member.email,
+                phone: member.phone,
+                address: member.address,
+                role: 'customer',
+              })));
+              setMembersLoadError(null);
+            }
+          } catch (error) {
+            console.error('Failed to load customer members:', error);
+            if (active) {
+              setMembersLoadError(
+                `Could not load members: ${error instanceof Error ? error.message : 'Unexpected error'}`
+              );
+            }
+          }
 
-            setDbOrders((current) => [
-              ...savedOrders.map((entry) => entry.order),
-              ...current.filter(
-                (existing) =>
-                  !savedOrders.some((entry) => entry.order.order_id === existing.order_id)
-              ),
-            ]);
-            setDbUsers((current) => [
-              ...savedOrders.map(({ row, adminId }) => ({
-                id: adminId,
-                authUserId: row.userId,
-                name: row.customerName,
-                email: row.customerEmail,
-                phone: row.customerPhone,
-                address: row.shippingAddress,
-                role: 'customer' as const,
-              })),
-              ...current.filter(
-                (existing) => !savedOrders.some((entry) => entry.adminId === existing.id)
-              ),
-            ]);
+          try {
             const [paymentRows, shippingRows] = await Promise.all([
               backendApi.getPayments(),
               backendApi.getShippingRecords(),
             ]);
+            if (!active) return;
             setDbPayments(paymentRows.map((payment) => ({
               payment_id: payment.paymentId,
               order_id: payment.orderId,
@@ -719,9 +724,8 @@ export default function App() {
               shipping_address: shipping.shippingAddress,
               shipping_status: shipping.shippingStatus,
             })));
-            }
           } catch (error) {
-            console.error('Failed to load orders:', error);
+            console.error('Failed to load payment and shipping records:', error);
           }
         }
       }
@@ -1123,6 +1127,8 @@ export default function App() {
         adminUser={adminUser}
         orders={dbOrders}
         users={dbUsers}
+        ordersLoadError={ordersLoadError}
+        membersLoadError={membersLoadError}
         shippings={dbShippings}
         payments={dbPayments}
         ingredients={dbIngredients}

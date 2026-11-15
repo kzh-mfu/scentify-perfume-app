@@ -20,7 +20,29 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaymentController {
   private final PaymentRepository payments; private final OrderRepository orders; private final CurrentUser currentUser;
   public PaymentController(PaymentRepository payments,OrderRepository orders,CurrentUser currentUser){this.payments=payments;this.orders=orders;this.currentUser=currentUser;}
-  @GetMapping public List<PaymentResponse> list(Authentication auth){currentUser.requireStaff(auth);return payments.findAllByOrderByCreatedAtDesc().stream().map(this::response).toList();}
+  @GetMapping
+  public List<PaymentResponse> list(Authentication auth) {
+    currentUser.requireStaff(auth);
+    return payments.findAllSummaries().stream()
+        .map(payment -> new PaymentResponse(
+            payment.getId(),
+            payment.getOrderId(),
+            payment.getPaymentMethod(),
+            null,
+            payment.getTransactionReference(),
+            payment.getStatus(),
+            payment.getVerifiedAt(),
+            payment.getCreatedAt()))
+        .toList();
+  }
+
+  @GetMapping("/{id}/receipt")
+  public ReceiptResponse receipt(Authentication auth, @PathVariable Long id) {
+    currentUser.requireStaff(auth);
+    Payment payment = payments.findById(id)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found."));
+    return new ReceiptResponse(payment.getReceiptUrl());
+  }
   @PostMapping @ResponseStatus(HttpStatus.CREATED)
   public PaymentResponse create(Authentication auth,@Valid @RequestBody PaymentRequest r){String uid=currentUser.id(auth);Order o=orders.findById(r.orderId()).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Order not found."));if(!uid.equals(o.getUserId()))currentUser.requireStaff(auth);if(payments.findByOrderId(o.getId()).isPresent())throw new ResponseStatusException(HttpStatus.CONFLICT,"A payment record already exists for this order.");return response(payments.save(new Payment(o,r.paymentMethod(),r.receiptUrl(),r.transactionReference())));}
  @Transactional
@@ -46,4 +68,5 @@ public PaymentResponse verify(Authentication auth, @PathVariable Long id) {
   private PaymentResponse response(Payment p){return new PaymentResponse(p.getId(),p.getOrder().getId(),p.getPaymentMethod(),p.getReceiptUrl(),p.getTransactionReference(),p.getStatus(),p.getVerifiedAt(),p.getCreatedAt());}
   public record PaymentRequest(Long orderId,@NotBlank String paymentMethod,String receiptUrl,String transactionReference){}
   public record PaymentResponse(Long paymentId,Long orderId,String paymentMethod,String receiptUrl,String transactionReference,String status,OffsetDateTime verifiedAt,OffsetDateTime createdAt){}
+  public record ReceiptResponse(String receiptUrl) {}
 }
