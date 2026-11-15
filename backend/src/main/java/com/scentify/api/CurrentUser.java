@@ -9,7 +9,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
-
 @Component
 public class CurrentUser {
   public String id(Authentication authentication) {

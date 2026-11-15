@@ -33,6 +33,8 @@ export interface Composition {
 
 export interface CartItem {
   id: string;
+  formulaId?: number;
+  bottleId?: number;
   title: string;
   subtitle: string;
   description?: string;
@@ -97,7 +99,7 @@ export type ViewMode =
 
 // Relational Database Diagram Entities
 export interface DbUser {
-  id: number;
+  id: string;
   name: string;
   email: string;
   phone: string;
@@ -108,7 +110,7 @@ export interface DbUser {
 export interface DbOrder {
   order_id: number;
   shipping_id: number;
-  user_id: number;
+  user_id: string;
   order_date: string;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   total_price: number;
@@ -242,4 +244,28 @@ export interface AdminStaffUser {
   phone?: string;
   active: boolean;
   createdAt: string;
+}
+
+
+// API contracts for the five new backend entities. IDs use numbers; Firebase user IDs use strings.
+export interface ApiBottle {
+  bottleId: number; size: number; bottleType: string; price: number; available: boolean; description?: string;
+}
+export interface ApiFormulaDetail {
+  formulaDetailId: number; ingredientId: number; ingredientName: string;
+  noteType: 'top' | 'heart' | 'base'; percentage?: number;
+}
+export interface ApiFormula {
+  formulaId: number; userId: string; formulaName: string; description?: string;
+  active: boolean; createdAt?: string; details: ApiFormulaDetail[];
+}
+export interface ApiPayment {
+  paymentId: number; orderId: number; paymentMethod: string; receiptUrl?: string;
+  transactionReference?: string; status: 'pending' | 'verified' | 'failed'; verifiedAt?: string; createdAt?: string;
+}
+export interface ApiShipping {
+  shippingId: number; orderId: number; shippingFee: number; trackingNumber?: string;
+  courierName?: string; shippingAddress: string;
+  shippingStatus: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  shippedAt?: string; deliveredAt?: string;
 }
