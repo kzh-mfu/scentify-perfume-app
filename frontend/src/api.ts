@@ -4,7 +4,7 @@
  * Ei Thandar Kyaw - order API; Saw Keh Blu - chat API.
  */
 import { firebaseAuth } from './firebase';
-import type { CartItem } from './types';
+import type { CartItem, ApiBottle, ApiFormula, ApiPayment, ApiShipping } from './types';
 
 const apiBaseUrl = import.meta.env.VITE_API_URL
   || (import.meta.env.PROD
@@ -54,6 +54,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!response.ok) {
     throw new Error((await response.text()) || `Backend request failed (${response.status}).`);
   }
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 
@@ -81,6 +82,29 @@ export const backendApi = {
       method: 'PATCH',
       body: JSON.stringify({ paymentStatus: 'verified' }),
     }),
+  // New perfume-business entities (backend V3 migration)
+  getBottles: () => request<ApiBottle[]>('/api/bottles'),
+  createBottle: (bottle: Omit<ApiBottle, 'bottleId'>) => request<ApiBottle>('/api/bottles', {
+    method: 'POST', body: JSON.stringify({ size: bottle.size, bottleType: bottle.bottleType, price: bottle.price, available: bottle.available, description: bottle.description }),
+  }),
+  updateBottle: (id: number, bottle: Omit<ApiBottle, 'bottleId'>) => request<ApiBottle>(`/api/bottles/${id}`, {
+    method: 'PUT', body: JSON.stringify({ size: bottle.size, bottleType: bottle.bottleType, price: bottle.price, available: bottle.available, description: bottle.description }),
+  }),
+  deleteBottle: (id: number) => request<void>(`/api/bottles/${id}`, { method: 'DELETE' }),
+  getMyFormulas: () => request<ApiFormula[]>('/api/formulas'),
+  getFormula: (id: number) => request<ApiFormula>(`/api/formulas/${id}`),
+  createFormula: (formula: { formulaName: string; description?: string; details: { ingredientId: number; noteType: 'top' | 'heart' | 'base'; percentage?: number }[] }) =>
+    request<ApiFormula>('/api/formulas', { method: 'POST', body: JSON.stringify(formula) }),
+  getPayments: () => request<ApiPayment[]>('/api/payments'),
+  createPayment: (payment: { orderId: number; paymentMethod: string; receiptUrl?: string; transactionReference?: string }) =>
+    request<ApiPayment>('/api/payments', { method: 'POST', body: JSON.stringify(payment) }),
+  verifyPayment: (id: number) => request<ApiPayment>(`/api/payments/${id}/verify`, { method: 'PATCH' }),
+  getShippingRecords: () => request<ApiShipping[]>('/api/shipping'),
+  createShipping: (shipping: { orderId: number; shippingFee: number; shippingAddress: string }) =>
+    request<ApiShipping>('/api/shipping', { method: 'POST', body: JSON.stringify(shipping) }),
+  updateShipping: (id: number, update: { trackingNumber?: string; courierName?: string; shippingStatus?: ApiShipping['shippingStatus'] }) =>
+    request<ApiShipping>(`/api/shipping/${id}`, { method: 'PATCH', body: JSON.stringify(update) }),
+
   getChatMessages: () => request<ApiMessage[]>('/api/chat/messages'),
   sendChatMessage: (message: string) =>
     request<ApiMessage>('/api/chat/messages', {

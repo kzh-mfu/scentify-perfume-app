@@ -8,6 +8,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scentify.domain.Order;
 import com.scentify.domain.Profile;
+import com.scentify.domain.Bottle;
+import com.scentify.domain.Formula;
+import com.scentify.repository.BottleRepository;
+import com.scentify.repository.FormulaRepository;
 import com.scentify.repository.OrderRepository;
 import com.scentify.repository.ProfileRepository;
 import jakarta.validation.Valid;
@@ -39,17 +43,23 @@ public class OrderController {
   private final ProfileRepository profiles;
   private final CurrentUser currentUser;
   private final ObjectMapper objectMapper;
+  private final BottleRepository bottles;
+  private final FormulaRepository formulas;
 
   public OrderController(
       OrderRepository orders,
       ProfileRepository profiles,
       CurrentUser currentUser,
-      ObjectMapper objectMapper
+      ObjectMapper objectMapper,
+      BottleRepository bottles,
+      FormulaRepository formulas
   ) {
     this.orders = orders;
     this.profiles = profiles;
     this.currentUser = currentUser;
     this.objectMapper = objectMapper;
+    this.bottles = bottles;
+    this.formulas = formulas;
   }
 
   @GetMapping
@@ -84,9 +94,7 @@ public class OrderController {
     order.setPaymentSlipUrl(request.paymentSlipUrl());
     order.setItems(writeJson(request.items()));
     addOrderItems(order, request.items());
-    Order savedOrder = orders.save(order);
-    savedOrder.setOrderNumber(String.valueOf(savedOrder.getId()));
-    return response(orders.save(savedOrder));
+    return response(orders.save(order));
   }
 
   @PatchMapping("/{id}/status")
@@ -118,7 +126,7 @@ public class OrderController {
     }
   }
 
-  private void addOrderItems(Order order, JsonNode items) {
+  private void addOrderItems(Order order, JsonNode items, String userId, Authentication authentication) {
     if (items == null || !items.isArray()) {
       return;
     }
@@ -130,7 +138,19 @@ public class OrderController {
       BigDecimal unitPrice = item.path("price").isNumber()
           ? item.path("price").decimalValue()
           : item.path("unitPrice").decimalValue();
-      order.addOrderItem(new com.scentify.domain.OrderItem(order, name, quantity, unitPrice));
+      Formula formula = null;
+      Bottle bottle = null;
+      if (item.hasNonNull("formulaId")) {
+        formula = formulas.findById(item.path("formulaId").asLong())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Formula not found."));
+        if (!userId.equals(formula.getUserId())) currentUser.requireStaff(authentication);
+      }
+      if (item.hasNonNull("bottleId")) {
+        bottle = bottles.findById(item.path("bottleId").asLong())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bottle not found."));
+        if (!bottle.isAvailable()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bottle is unavailable.");
+      }
+      order.addOrderItem(new com.scentify.domain.OrderItem(order, name, formula, bottle, quantity, unitPrice));
     }
   }
 
