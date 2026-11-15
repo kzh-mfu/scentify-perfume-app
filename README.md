@@ -156,6 +156,7 @@ GET /api/health
 - Java 25
 - Maven
 - MySQL 8
+- Google Cloud CLI (`gcloud`)
 - A Google Cloud project for deployed authentication
 
 ### Configure the frontend
@@ -163,11 +164,14 @@ GET /api/health
 ```sh
 cd frontend
 cp .env.example .env.local
+# Set VITE_API_URL=http://localhost:8080 in .env.local
 npm install
 npm run dev
 ```
 
-The frontend runs at <http://localhost:3000>.
+The frontend runs at <http://localhost:3000>. If port 3000 is already in use,
+Vite may select another port, such as 3001. Use the actual frontend port for
+the backend's `CORS_ALLOWED_ORIGINS` setting below.
 
 Set these values in `frontend/.env.local`:
 
@@ -186,15 +190,38 @@ Platform project settings.
 
 ### Configure the backend
 
-Create a local MySQL database named `scentify`, then run:
+The backend initializes Firebase Admin with Google Application Default
+Credentials. Sign in once with the Google account for your Firebase project:
+
+```sh
+gcloud auth application-default login
+```
+
+Create a local MySQL database named `scentify`:
+
+```sql
+CREATE DATABASE scentify;
+```
+
+In another terminal, set the backend database credentials and the frontend
+origin. The defaults are shown below; change the database username/password
+if your MySQL installation uses different credentials. Set
+`CORS_ALLOWED_ORIGINS` to the origin printed by Vite (for example,
+`http://localhost:3001` if it selected port 3001), then start the backend:
 
 ```sh
 cd backend
+export DATABASE_URL=jdbc:mysql://localhost:3306/scentify
+export DATABASE_USERNAME=root
+export DATABASE_PASSWORD=root
+export GOOGLE_CLOUD_PROJECT_ID=scentify-513806
+export CORS_ALLOWED_ORIGINS=http://localhost:3001
 mvn spring-boot:run
 ```
 
-The backend runs at <http://localhost:8080>. Flyway creates the tables from
-`backend/src/main/resources/db/migration/V1__create_scentify_tables.sql`.
+Use `http://localhost:3000` for `CORS_ALLOWED_ORIGINS` if Vite is running on
+port 3000. The backend runs at <http://localhost:8080>. Flyway creates the
+tables from `backend/src/main/resources/db/migration/` on first startup.
 
 Default local database settings:
 

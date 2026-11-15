@@ -6,17 +6,30 @@ authentication.
 
 ## Run locally
 
-Run these commands from the `backend/` directory. Set `DATABASE_URL`,
-`DATABASE_USERNAME`, `DATABASE_PASSWORD`, and `GOOGLE_CLOUD_PROJECT_ID`, then
-run:
+For full local functionality, create a MySQL database named `scentify` first.
+The backend also requires Google Application Default Credentials to initialize
+Firebase Admin. Sign in once with the Google account for the Firebase project:
+
+```sh
+gcloud auth application-default login
+```
+
+Run these commands from the repository root, changing the database credentials
+as needed. Set `CORS_ALLOWED_ORIGINS` to the frontend origin printed by Vite
+(the default Vite port is 3000; if it falls back to 3001, use that instead):
 
 ```sh
 cd backend
+export DATABASE_URL=jdbc:mysql://localhost:3306/scentify
+export DATABASE_USERNAME=root
+export DATABASE_PASSWORD=root
+export GOOGLE_CLOUD_PROJECT_ID=scentify-513806
+export CORS_ALLOWED_ORIGINS=http://localhost:3001
 mvn spring-boot:run
 ```
 
-For full local functionality, use the default profile and a local MySQL
-database. Do not activate the `local` profile for catalog or checkout work:
+Use the default profile and a local MySQL database. Do not activate the
+`local` profile for catalog or checkout work:
 that profile disables the database, JPA, and Flyway, and excludes the
 persistent bottle and formula APIs. Flyway seeds the local bottle catalog on
 the first startup.
