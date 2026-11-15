@@ -1,0 +1,23 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isStudioStaff() {
+      return isSignedIn()
+        && request.auth.token.role in ['admin', 'staff', 'perfumer'];
+    }
+
+    match /chat-attachments/{customerUid}/{fileName} {
+      allow read: if isSignedIn()
+        && (request.auth.uid == customerUid || isStudioStaff());
+      allow write: if isStudioStaff()
+        && request.resource != null
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+  }
+}
