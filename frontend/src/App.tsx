@@ -2,7 +2,7 @@
  * Shared frontend integration tasks:
  * connect member views, authentication, profile, ingredients, orders, and chat.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -24,6 +24,7 @@ import { AdminSidePanel } from './components/AdminSidePanel';
 
 import { firebaseAuth } from './firebase';
 import { backendApi } from './api';
+import type { ApiOrder } from './api';
 import { formatChatMessageTime } from './chatTime';
 import type { User } from './firebase';
 
@@ -48,20 +49,17 @@ import {
   MasterFormula,
   AdminStaffUser,
   ScentFamily,
+  ApiBottle,
+  ApiFormula,
+  ApiIngredient,
 } from './types';
 import {
   INITIAL_ORDER,
   SCENT_FAMILIES,
 } from './data/perfumeData';
 import {
-  INITIAL_DB_ORDERS,
   INITIAL_DB_USERS,
-  INITIAL_DB_SHIPPINGS,
-  INITIAL_DB_PAYMENTS,
   INITIAL_DB_INGREDIENTS,
-  INITIAL_DB_FORMULAS,
-  INITIAL_DB_FORMULA_DETAILS,
-  INITIAL_DB_ORDER_ITEMS,
   INITIAL_BOTTLE_OPTIONS,
   INITIAL_CUSTOMIZATION_RULES,
   INITIAL_MASTER_FORMULAS,
@@ -124,6 +122,8 @@ function parseOrderItems(value: unknown): CartItem[] {
 
     return [{
       id: typeof record.id === 'string' ? record.id : `order-item-${index + 1}`,
+      formulaId: typeof record.formulaId === 'number' ? record.formulaId : undefined,
+      bottleId: typeof record.bottleId === 'number' ? record.bottleId : undefined,
       title: typeof record.title === 'string' ? record.title : 'Perfume',
       subtitle: typeof record.subtitle === 'string' ? record.subtitle : '',
       description: typeof record.description === 'string' ? record.description : undefined,
@@ -134,12 +134,47 @@ function parseOrderItems(value: unknown): CartItem[] {
         ? {
             notes,
             size: typeof details.size === 'string' ? details.size : itemSize,
+            bottleType: typeof details.bottleType === 'string' ? details.bottleType : undefined,
           }
         : itemSize
         ? { size: itemSize }
         : undefined,
     }];
   });
+}
+
+function toBottleOption(bottle: ApiBottle): BottleOption {
+  return {
+    bottle_id: bottle.bottleId,
+    size: `${bottle.size} ml`,
+    volume: bottle.size,
+    price: Number(bottle.price),
+    bottleType: bottle.bottleType,
+    inStock: bottle.available,
+    description: bottle.description,
+  };
+}
+
+function normalizeIngredientName(name: string): string {
+  return name.replace(/\s*\([^)]*\)/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function toSavedFormula(formula: ApiFormula): MasterFormula {
+  const note = (type: 'top' | 'heart' | 'base', index: number) =>
+    formula.details.find((detail) => detail.noteType.toLowerCase() === type)?.ingredientName
+    || formula.details[index]?.ingredientName
+    || '';
+  return {
+    id: -formula.formulaId,
+    formulaId: formula.formulaId,
+    name: formula.formulaName,
+    topNote: note('top', 0),
+    heartNote: note('heart', 1),
+    baseNote: note('base', 2),
+    active: formula.active,
+    description: formula.description || '',
+    created_at: formula.createdAt,
+  };
 }
 
 export default function App() {
@@ -155,7 +190,7 @@ export default function App() {
     heartNote: 'Jasmine',
     baseNote: 'Sandalwood',
     bottleSize: '50 ml',
-    bottleType: 'Classic',
+    bottleType: 'Classic Flacon',
   });
 
   // Shopping Bag / Cart State
@@ -168,24 +203,21 @@ export default function App() {
   }));
 
   // Relational Database State for Admin Panel
-  const [dbOrders, setDbOrders] = useState<DbOrder[]>(INITIAL_DB_ORDERS);
+  const [dbOrders, setDbOrders] = useState<DbOrder[]>([]);
   const [dbUsers, setDbUsers] = useState<DbUser[]>(INITIAL_DB_USERS);
-  const [dbShippings, setDbShippings] = useState<DbShipping[]>(INITIAL_DB_SHIPPINGS);
-  const [dbPayments, setDbPayments] = useState<DbPayment[]>(INITIAL_DB_PAYMENTS);
+  const [dbShippings, setDbShippings] = useState<DbShipping[]>([]);
+  const [dbPayments, setDbPayments] = useState<DbPayment[]>([]);
   const [dbIngredients, setDbIngredients] = useState<DbIngredient[]>(INITIAL_DB_INGREDIENTS);
-  const [dbFormulas, setDbFormulas] = useState<DbFormula[]>(INITIAL_DB_FORMULAS);
-  const [dbFormulaDetails, setDbFormulaDetails] = useState<DbFormulaDetail[]>(INITIAL_DB_FORMULA_DETAILS);
-  const [dbOrderItems, setDbOrderItems] = useState<DbOrderItem[]>(INITIAL_DB_ORDER_ITEMS);
+  const [dbFormulas, setDbFormulas] = useState<DbFormula[]>([]);
+  const [dbFormulaDetails, setDbFormulaDetails] = useState<DbFormulaDetail[]>([]);
+  const [dbOrderItems, setDbOrderItems] = useState<DbOrderItem[]>([]);
 
   // Dynamic Admin Management State (Persisted in localStorage)
-  const [bottles, setBottles] = useState<BottleOption[]>(() => {
-    try {
-      const raw = localStorage.getItem('scentify_bottles');
-      return raw ? JSON.parse(raw) : INITIAL_BOTTLE_OPTIONS;
-    } catch {
-      return INITIAL_BOTTLE_OPTIONS;
-    }
-  });
+  const [bottles, setBottles] = useState<BottleOption[]>(INITIAL_BOTTLE_OPTIONS);
+  const [ingredients, setIngredients] = useState<ApiIngredient[]>([]);
+  const [savedFormulas, setSavedFormulas] = useState<MasterFormula[]>([]);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [formulaLoadError, setFormulaLoadError] = useState<string | null>(null);
 
   const [scentFamilies, setScentFamilies] = useState<ScentFamily[]>(() => {
     try {
@@ -223,13 +255,41 @@ export default function App() {
     }
   });
 
-  const handleUpdateBottles = (newBottles: BottleOption[]) => {
-    setBottles(newBottles);
-    try {
-      localStorage.setItem('scentify_bottles', JSON.stringify(newBottles));
-    } catch (e) {
-      console.error('Failed to save bottles to storage:', e);
+  const handleUpdateBottles = async (newBottles: BottleOption[]): Promise<BottleOption[]> => {
+    const previousById = new Map(bottles.map((bottle) => [bottle.bottle_id, bottle]));
+    const nextById = new Map(newBottles.map((bottle) => [bottle.bottle_id, bottle]));
+
+    for (const [id, oldBottle] of previousById) {
+      if (!nextById.has(id)) await backendApi.deleteBottle(id);
+      else {
+        const bottle = nextById.get(id)!;
+        if (JSON.stringify(bottle) !== JSON.stringify(oldBottle)) {
+          await backendApi.updateBottle(id, {
+            size: bottle.volume,
+            bottleType: bottle.bottleType,
+            price: bottle.price,
+            available: bottle.inStock,
+            description: bottle.description,
+          });
+        }
+      }
     }
+
+    for (const bottle of newBottles) {
+      if (!previousById.has(bottle.bottle_id)) {
+        await backendApi.createBottle({
+          size: bottle.volume,
+          bottleType: bottle.bottleType,
+          price: bottle.price,
+          available: bottle.inStock,
+          description: bottle.description,
+        });
+      }
+    }
+
+    const savedBottles = (await backendApi.getBottles()).map(toBottleOption);
+    setBottles(savedBottles);
+    return savedBottles;
   };
 
   const handleUpdateScentFamilies = (newFamilies: ScentFamily[]) => {
@@ -280,6 +340,66 @@ export default function App() {
   const [isAdminUser, setIsAdminUser] = useState<boolean>(false);
   const [adminUser, setAdminUser] = useState<string>('Scentify Studio Master Perfumer');
   const [isAuthResolved, setIsAuthResolved] = useState<boolean>(false);
+  const pendingCheckoutOrder = useRef<ApiOrder | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!authenticatedUser) {
+      setBottles(INITIAL_BOTTLE_OPTIONS);
+      setIngredients([]);
+      setCatalogError(null);
+      return () => { active = false; };
+    }
+    setBottles([]);
+    setIngredients([]);
+
+    const loadCatalog = async () => {
+      const failures: string[] = [];
+      try {
+        const bottleRows = await backendApi.getBottles();
+        if (active) setBottles(bottleRows.map(toBottleOption));
+      } catch (error) {
+        console.error('Failed to load bottle catalog:', error);
+        failures.push(`bottles: ${error instanceof Error ? error.message : 'Unexpected error'}`);
+      }
+      try {
+        const ingredientRows = await backendApi.getIngredients();
+        if (active) setIngredients(ingredientRows);
+      } catch (error) {
+        console.error('Failed to load ingredients:', error);
+        failures.push(`ingredients: ${error instanceof Error ? error.message : 'Unexpected error'}`);
+      }
+      if (active) {
+        setCatalogError(failures.length ? `Could not load backend catalog (${failures.join('; ')}).` : null);
+      }
+    };
+    void loadCatalog();
+    return () => { active = false; };
+  }, [authenticatedUser?.id]);
+
+  useEffect(() => {
+    let active = true;
+    if (!authenticatedUser || isAdminUser) {
+      setSavedFormulas([]);
+      setFormulaLoadError(null);
+      return () => { active = false; };
+    }
+
+    void backendApi.getMyFormulas().then((rows) => {
+      if (active) {
+        setSavedFormulas(rows.map(toSavedFormula));
+        setFormulaLoadError(null);
+      }
+    }).catch((error: unknown) => {
+      console.error('Failed to load saved formulas:', error);
+      if (active) {
+        setFormulaLoadError(
+          `Could not load saved formulas: ${error instanceof Error ? error.message : 'Unexpected error'}.`
+        );
+      }
+    });
+    return () => { active = false; };
+  }, [authenticatedUser?.id, isAdminUser]);
 
   useEffect(() => {
     let active = true;
@@ -422,7 +542,7 @@ export default function App() {
             if (active) {
             const savedOrders = rows.map((row) => {
               const id = Number(row.id);
-              const adminId = 1_000_000 + id;
+              const adminId = row.userId;
               const status: DbOrder['status'] =
                 row.status === 'processing' ||
                 row.status === 'completed' ||
@@ -435,7 +555,7 @@ export default function App() {
                 adminId,
                 order: {
                   order_id: id,
-                  shipping_id: adminId,
+                  shipping_id: undefined,
                   user_id: adminId,
                   order_date: row.createdAt,
                   status,
@@ -467,35 +587,26 @@ export default function App() {
                 (existing) => !savedOrders.some((entry) => entry.adminId === existing.id)
               ),
             ]);
-            setDbShippings((current) => [
-              ...savedOrders.map(({ row, adminId }) => ({
-                shipping_id: adminId,
-                shipping_fee: Number(row.total) > 1500 ? 0 : 50,
-                tracking_number: 'PENDING-VERIFICATION',
-                courier_name: 'DHL Express',
-                shipping_address: row.shippingAddress,
-              })),
-              ...current.filter(
-                (existing) => !savedOrders.some((entry) => entry.adminId === existing.shipping_id)
-              ),
+            const [paymentRows, shippingRows] = await Promise.all([
+              backendApi.getPayments(),
+              backendApi.getShippingRecords(),
             ]);
-            setDbPayments((current) => [
-              ...savedOrders.map(({ row, order }) => ({
-                payment_id: 1_000_000 + order.order_id,
-                order_id: order.order_id,
-                qr_receipt_url: row.paymentSlipUrl || '',
-                status: (
-                  row.paymentStatus === 'verified' || row.paymentStatus === 'failed'
-                    ? row.paymentStatus
-                    : 'pending'
-                ) as DbPayment['status'],
-                verified_at: row.verifiedAt || undefined,
-              })),
-              ...current.filter(
-                (existing) =>
-                  !savedOrders.some((entry) => entry.order.order_id === existing.order_id)
-              ),
-            ]);
+            setDbPayments(paymentRows.map((payment) => ({
+              payment_id: payment.paymentId,
+              order_id: payment.orderId,
+              qr_receipt_url: payment.receiptUrl || '',
+              status: payment.status,
+              verified_at: payment.verifiedAt,
+            })));
+            setDbShippings(shippingRows.map((shipping) => ({
+              shipping_id: shipping.shippingId,
+              order_id: shipping.orderId,
+              shipping_fee: Number(shipping.shippingFee),
+              tracking_number: shipping.trackingNumber || '',
+              courier_name: shipping.courierName || '',
+              shipping_address: shipping.shippingAddress,
+              shipping_status: shipping.shippingStatus,
+            })));
             }
           } catch (error) {
             console.error('Failed to load orders:', error);
@@ -543,11 +654,11 @@ export default function App() {
 
   const handleAddIngredientToScentify = (ingredient: Ingredient) => {
     if (ingredient.familyId === 'citrus') {
-      setComposition((prev) => ({ ...prev, topNote: ingredient.name }));
+      setComposition((prev) => ({ ...prev, formulaId: undefined, topNote: ingredient.name }));
     } else if (ingredient.familyId === 'floral') {
-      setComposition((prev) => ({ ...prev, heartNote: ingredient.name }));
+      setComposition((prev) => ({ ...prev, formulaId: undefined, heartNote: ingredient.name }));
     } else {
-      setComposition((prev) => ({ ...prev, baseNote: ingredient.name }));
+      setComposition((prev) => ({ ...prev, formulaId: undefined, baseNote: ingredient.name }));
     }
   };
 
@@ -594,8 +705,53 @@ export default function App() {
     const custEmail = authenticatedUser.email || '';
     const custPhone = order.phone || '';
     const fullAddr = `${order.address}, ${order.city}, ${order.province} ${order.postalCode}, ${order.country}`;
-    const placedItems = cartItems.map((item) => ({ ...item }));
-    const savedOrder = await backendApi.createOrder({
+    const formulaDetails = ingredients.reduce((details, ingredient) => {
+      if (ingredient.available) {
+        details.set(normalizeIngredientName(ingredient.name), ingredient.id);
+      }
+      return details;
+    }, new Map<string, number>());
+    const placedItems = pendingCheckoutOrder.current?.items || await Promise.all(cartItems.map(async (item) => {
+      const savedItem = { ...item };
+      if (savedItem.details?.size) {
+        const selectedBottle = bottles.find((entry) =>
+          entry.bottle_id === savedItem.bottleId &&
+          entry.size === savedItem.details?.size &&
+          (!savedItem.details?.bottleType || entry.bottleType === savedItem.details.bottleType)
+        );
+        const bottle = selectedBottle || bottles.find((entry) =>
+          entry.size === savedItem.details?.size &&
+          (!savedItem.details?.bottleType || entry.bottleType === savedItem.details.bottleType)
+        );
+        if (!bottle?.inStock) {
+          throw new Error(`The selected bottle (${savedItem.details.size}) is unavailable.`);
+        }
+        savedItem.bottleId = bottle.bottle_id;
+      }
+      if (!savedItem.formulaId && savedItem.details?.notes?.length) {
+        const noteTypes = ['top', 'heart', 'base'] as const;
+        const formulaIngredients = savedItem.details.notes
+          .filter((name) => name.trim().length > 0)
+          .slice(0, 3)
+          .map((name, index) => {
+          const ingredientId = formulaDetails.get(normalizeIngredientName(name));
+          if (!ingredientId) throw new Error(`Ingredient "${name}" is not available in the backend catalog.`);
+          return { ingredientId, noteType: noteTypes[index] };
+        });
+        if (formulaIngredients.length) {
+          const savedFormula = await backendApi.createFormula({
+            formulaName: savedItem.title,
+            description: savedItem.description,
+            details: formulaIngredients,
+          });
+          savedItem.formulaId = savedFormula.formulaId;
+          setSavedFormulas((previous) => [toSavedFormula(savedFormula), ...previous]);
+        }
+      }
+      return savedItem;
+    }));
+    setCartItems(placedItems);
+    const savedOrder = pendingCheckoutOrder.current || await backendApi.createOrder({
       orderNumber: payload.orderId,
       customerName: custName,
       customerEmail: custEmail,
@@ -603,8 +759,15 @@ export default function App() {
       shippingAddress: fullAddr,
       total: payload.total,
       paymentSlipUrl: payload.slipUrl,
-      items: placedItems,
+      items: placedItems.map((item) => ({ ...item, name: item.title })),
     });
+    pendingCheckoutOrder.current = savedOrder;
+    const savedPayment = await backendApi.createPayment({
+      orderId: Number(savedOrder.id),
+      paymentMethod: 'PromptPay',
+      receiptUrl: payload.slipUrl,
+    });
+    pendingCheckoutOrder.current = null;
     const savedOrderNumber = savedOrder.orderNumber || String(savedOrder.id);
 
     setPurchaseHistory((previous) => [
@@ -620,61 +783,31 @@ export default function App() {
     setPurchaseHistoryError(null);
 
     const numericOrderId = Number(savedOrder.id);
-    const newUserId = 1_000_000 + numericOrderId;
-    const newShippingId = newUserId;
-    const newPaymentId = newUserId;
     const newDbUser: DbUser = {
-      id: newUserId,
+      id: authenticatedUser.id,
       name: custName,
       email: custEmail,
       phone: custPhone,
       address: fullAddr,
       role: 'customer',
     };
-    const newDbShipping: DbShipping = {
-      shipping_id: newShippingId,
-      shipping_fee: payload.total > 1500 ? 0 : 50,
-      tracking_number: 'PENDING-VERIFICATION',
-      courier_name: 'DHL Express',
-      shipping_address: fullAddr,
-    };
     const newDbPayment: DbPayment = {
-      payment_id: newPaymentId,
+      payment_id: savedPayment.paymentId,
       order_id: numericOrderId,
-      qr_receipt_url: payload.slipUrl,
-      status: 'pending',
+      qr_receipt_url: savedPayment.receiptUrl || '',
+      status: savedPayment.status,
     };
     const newDbOrder: DbOrder = {
       order_id: numericOrderId,
-      shipping_id: newShippingId,
-      user_id: newUserId,
+      user_id: authenticatedUser.id,
       order_date: savedOrder.createdAt,
       status: 'pending',
       total_price: payload.total,
       prep_photo_url: '',
+      items: placedItems,
     };
-    const newFormulaId = 1_000_000 + numericOrderId;
-    const formulaName =
-      placedItems[0]?.title ||
-      `Bespoke Blend (${composition.topNote} · ${composition.heartNote} · ${composition.baseNote})`;
-    const newDbFormula: DbFormula = {
-      formula_id: newFormulaId,
-      formula_name: formulaName,
-      created_at: savedOrder.createdAt,
-    };
-    const newDbOrderItem: DbOrderItem = {
-      order_item_id: newFormulaId,
-      formula_detail_id: 1,
-      order_id: numericOrderId,
-      bottle_id: composition.bottleSize === '100 ml' ? 2 : 1,
-      qty: placedItems.reduce((acc, item) => acc + item.quantity, 0) || 1,
-    };
-
     setDbUsers((prev) => [newDbUser, ...prev]);
-    setDbShippings((prev) => [newDbShipping, ...prev]);
     setDbPayments((prev) => [newDbPayment, ...prev]);
-    setDbFormulas((prev) => [newDbFormula, ...prev]);
-    setDbOrderItems((prev) => [newDbOrderItem, ...prev]);
     setDbOrders((prev) => [newDbOrder, ...prev]);
     setCartItems([]);
     setOrder((prev) => ({
@@ -693,17 +826,47 @@ export default function App() {
 
   // Admin verifies slip and confirms the order
   const handleAdminConfirmOrder = async (orderId: number) => {
-    const now = new Date().toISOString();
+    const payment = dbPayments.find((entry) => entry.order_id === orderId);
+    if (!payment) throw new Error('No backend payment record exists for this order.');
+    const verifiedPayment = await backendApi.verifyPayment(payment.payment_id);
+    const dbOrder = dbOrders.find((entry) => entry.order_id === orderId);
+    if (!dbOrder) throw new Error('Order details are unavailable for shipping creation.');
+    const existingShippingRows = await backendApi.getShippingRecords();
+    let shipping = existingShippingRows.find((entry) => entry.orderId === orderId);
+    if (!shipping) {
+      const address = dbUsers.find((user) => user.id === dbOrder.user_id)?.address;
+      if (!address) throw new Error('Shipping address is unavailable for this order.');
+      const subtotal = (dbOrder.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0);
+      shipping = await backendApi.createShipping({
+        orderId,
+        shippingFee: subtotal > 1500 ? 0 : 50,
+        shippingAddress: address,
+      });
+    }
     await backendApi.updateOrderStatus(orderId, 'processing');
 
-    setDbOrders((prev) =>
-      prev.map((o) => (o.order_id === orderId ? { ...o, status: 'processing' } : o))
+    setDbOrders((previous) =>
+      previous.map((entry) => (entry.order_id === orderId ? { ...entry, status: 'processing' } : entry))
     );
-    setDbPayments((prev) =>
-      prev.map((p) =>
-        p.order_id === orderId ? { ...p, status: 'verified', verified_at: now } : p
-      )
-    );
+    setDbPayments((previous) => previous.map((entry) =>
+      entry.order_id === orderId
+        ? {
+            ...entry,
+            status: verifiedPayment.status,
+            verified_at: verifiedPayment.verifiedAt,
+            qr_receipt_url: verifiedPayment.receiptUrl || entry.qr_receipt_url,
+          }
+        : entry
+    ));
+    setDbShippings((previous) => [{
+      shipping_id: shipping.shippingId,
+      order_id: shipping.orderId,
+      shipping_fee: Number(shipping.shippingFee),
+      tracking_number: shipping.trackingNumber || '',
+      courier_name: shipping.courierName || '',
+      shipping_address: shipping.shippingAddress,
+      shipping_status: shipping.shippingStatus,
+    }, ...previous.filter((entry) => entry.order_id !== orderId)]);
     setOrder((prev) =>
       Number(prev.orderId.replace(/\D/g, '')) === orderId
         ? { ...prev, status: 'verified' }
@@ -714,12 +877,22 @@ export default function App() {
   // Admin cancels the order
   const handleAdminCancelOrder = async (orderId: number) => {
     await backendApi.updateOrderStatus(orderId, 'cancelled');
+    const shipping = dbShippings.find((entry) => entry.order_id === orderId);
+    if (shipping) {
+      await backendApi.updateShipping(shipping.shipping_id, {
+        trackingNumber: shipping.tracking_number,
+        courierName: shipping.courier_name,
+        shippingStatus: 'cancelled',
+      });
+      setDbShippings((previous) => previous.map((entry) =>
+        entry.shipping_id === shipping.shipping_id
+          ? { ...entry, shipping_status: 'cancelled' }
+          : entry
+      ));
+    }
 
     setDbOrders((prev) =>
       prev.map((o) => (o.order_id === orderId ? { ...o, status: 'cancelled' } : o))
-    );
-    setDbPayments((prev) =>
-      prev.map((p) => (p.order_id === orderId ? { ...p, status: 'failed' } : p))
     );
     setOrder((prev) =>
       Number(prev.orderId.replace(/\D/g, '')) === orderId
@@ -730,23 +903,68 @@ export default function App() {
 
   const handleAdminUpdateOrderStatus = async (orderId: number, status: DbOrder['status']) => {
     await backendApi.updateOrderStatus(orderId, status);
+    const shippingStatus = status === 'completed'
+      ? 'delivered'
+      : status === 'processing'
+      ? 'processing'
+      : status === 'cancelled'
+      ? 'cancelled'
+      : undefined;
+    const shipping = shippingStatus
+      ? dbShippings.find((entry) => entry.order_id === orderId)
+      : undefined;
+    if (shipping && shippingStatus) {
+      const saved = await backendApi.updateShipping(shipping.shipping_id, {
+        trackingNumber: shipping.tracking_number,
+        courierName: shipping.courier_name,
+        shippingStatus,
+      });
+      setDbShippings((previous) => previous.map((entry) => entry.shipping_id === shipping.shipping_id
+        ? { ...entry, shipping_status: saved.shippingStatus }
+        : entry
+      ));
+    }
 
     setDbOrders((prev) =>
       prev.map((order) => (order.order_id === orderId ? { ...order, status } : order))
     );
   };
 
-  const handleAdminVerifyPayment = async (_paymentId: number, orderId: number) => {
-    const now = new Date().toISOString();
-    await backendApi.verifyOrderPayment(orderId);
+  const handleAdminVerifyPayment = async (paymentId: number, orderId: number) => {
+    const verified = await backendApi.verifyPayment(paymentId);
 
     setDbPayments((prev) =>
       prev.map((payment) =>
         payment.order_id === orderId
-          ? { ...payment, status: 'verified', verified_at: now }
+          ? {
+              ...payment,
+              status: verified.status,
+              verified_at: verified.verifiedAt,
+              qr_receipt_url: verified.receiptUrl || payment.qr_receipt_url,
+            }
           : payment
       )
     );
+  };
+
+  const handleAdminUpdateShipping = async (
+    shippingId: number,
+    update: { trackingNumber: string; courierName: string },
+  ): Promise<DbShipping> => {
+    const saved = await backendApi.updateShipping(shippingId, update);
+    const shipping: DbShipping = {
+      shipping_id: saved.shippingId,
+      order_id: saved.orderId,
+      shipping_fee: Number(saved.shippingFee),
+      tracking_number: saved.trackingNumber || '',
+      courier_name: saved.courierName || '',
+      shipping_address: saved.shippingAddress,
+      shipping_status: saved.shippingStatus,
+    };
+    setDbShippings((previous) => previous.map((entry) =>
+      entry.shipping_id === shippingId ? shipping : entry
+    ));
+    return shipping;
   };
 
   const handleLogout = async () => {
@@ -812,6 +1030,7 @@ export default function App() {
         onCancelOrder={handleAdminCancelOrder}
         onUpdateOrderStatus={handleAdminUpdateOrderStatus}
         onVerifyPayment={handleAdminVerifyPayment}
+        onUpdateShipping={handleAdminUpdateShipping}
       />
     );
   }
@@ -860,7 +1079,8 @@ export default function App() {
             scentFamilies={scentFamilies}
             bottles={bottles}
             rules={rules}
-            formulas={masterFormulas}
+            formulas={[...savedFormulas, ...masterFormulas]}
+            catalogError={catalogError || formulaLoadError}
           />
         )}
 

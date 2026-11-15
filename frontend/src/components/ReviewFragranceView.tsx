@@ -28,19 +28,28 @@ export const ReviewFragranceView: React.FC<ReviewFragranceViewProps> = ({
     activeBottles[0]?.size ||
     '50 ml';
 
-  const [selectedSize, setSelectedSize] = useState<string>(defaultSize);
+  const defaultBottle = activeBottles.find((b) =>
+    b.bottle_id === composition.bottleId && b.size === defaultSize
+  ) || activeBottles.find((b) =>
+    b.size === defaultSize && b.bottleType === composition.bottleType
+  ) || activeBottles.find((b) => b.size === defaultSize) || activeBottles[0];
+  const [selectedBottleId, setSelectedBottleId] = useState<number | undefined>(defaultBottle?.bottle_id);
 
-  const matchedBottle = activeBottles.find((b) => b.size === selectedSize) || activeBottles[0] || {
+  const matchedBottle = activeBottles.find((b) => b.bottle_id === selectedBottleId) || defaultBottle || {
+    bottle_id: undefined,
     size: '50 ml',
     price: 1680,
     bottleType: 'Classic Flacon',
   };
+  const selectedSize = matchedBottle.size;
 
   const price = matchedBottle.price;
 
   const handleConfirm = () => {
     const customItem: CartItem = {
       id: `custom-${Date.now()}`,
+      formulaId: composition.formulaId,
+      bottleId: matchedBottle.bottle_id,
       title: 'Custom Fragrance',
       subtitle: `${composition.topNote} · ${composition.heartNote} · ${composition.baseNote} · ${selectedSize}`,
       description: 'Handcrafted personal eau de parfum formulation',
@@ -50,6 +59,7 @@ export const ReviewFragranceView: React.FC<ReviewFragranceViewProps> = ({
       details: {
         notes: [composition.topNote, composition.heartNote, composition.baseNote],
         size: selectedSize,
+        bottleType: matchedBottle.bottleType,
       },
     };
     onConfirmAndShip(customItem);
@@ -168,9 +178,9 @@ export const ReviewFragranceView: React.FC<ReviewFragranceViewProps> = ({
                     {activeBottles.map((b) => (
                       <button
                         key={b.bottle_id}
-                        onClick={() => setSelectedSize(b.size)}
+                        onClick={() => setSelectedBottleId(b.bottle_id)}
                         className={`px-3 py-1.5 text-xs font-mono border transition-all ${
-                          selectedSize === b.size
+                          selectedBottleId === b.bottle_id
                             ? 'border-[#28192A] bg-[#28192A] text-[#FBF7F0] font-semibold'
                             : 'border-[#DAD1C5] bg-[#FBF7F0] text-[#28192A] hover:border-[#28192A]'
                         }`}

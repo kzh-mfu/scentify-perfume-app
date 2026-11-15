@@ -99,7 +99,7 @@ interface AdminSidePanelProps {
 
   // Dynamic Management props
   bottles?: BottleOption[];
-  onUpdateBottles?: (bottles: BottleOption[]) => void;
+  onUpdateBottles?: (bottles: BottleOption[]) => Promise<BottleOption[]>;
   scentFamilies?: ScentFamily[];
   onUpdateScentFamilies?: (families: ScentFamily[]) => void;
   rules?: CustomizationRule[];
@@ -113,6 +113,10 @@ interface AdminSidePanelProps {
   onCancelOrder?: (orderId: number) => void | Promise<void>;
   onUpdateOrderStatus?: (orderId: number, status: DbOrder['status']) => void | Promise<void>;
   onVerifyPayment?: (paymentId: number, orderId: number) => void | Promise<void>;
+  onUpdateShipping?: (
+    shippingId: number,
+    update: { trackingNumber: string; courierName: string },
+  ) => Promise<DbShipping>;
   onSwitchToStorefront?: () => void;
 }
 
@@ -144,6 +148,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
   onCancelOrder,
   onUpdateOrderStatus,
   onVerifyPayment,
+  onUpdateShipping,
   onSwitchToStorefront,
 }) => {
   // Navigation Tabs
@@ -594,9 +599,10 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
     setIsBottleModalOpen(true);
   };
 
-  const handleSaveBottle = (e: React.FormEvent) => {
+  const handleSaveBottle = async (e: React.FormEvent) => {
     e.preventDefault();
     let updated: BottleOption[];
+    let successMessage: string;
     if (editingBottle) {
       updated = bottles.map((b) =>
         b.bottle_id === editingBottle.bottle_id
@@ -611,10 +617,10 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
             }
           : b
       );
-      showToast(`Bottle "${bottleForm.size}" updated to ฿${Number(bottleForm.price).toLocaleString()}.`);
+      successMessage = `Bottle "${bottleForm.size}" updated to ฿${Number(bottleForm.price).toLocaleString()}.`;
     } else {
       const nextId =
-        bottles.length > 0 ? Math.max(...bottles.map((b) => b.bottle_id)) + 1 : 1;
+        bottles.length > 0 ? Math.max(...bottles.map((b) => b.bottle_id)) + 1 : -Date.now();
       const newBottle: BottleOption = {
         bottle_id: nextId,
         size: bottleForm.size,
@@ -625,31 +631,47 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
         inStock: bottleForm.inStock,
       };
       updated = [...bottles, newBottle];
-      showToast(`New bottle "${bottleForm.size}" added to store catalog.`);
+      successMessage = `New bottle "${bottleForm.size}" added to store catalog.`;
     }
 
-    setBottles(updated);
-    onUpdateBottles?.(updated);
-    setIsBottleModalOpen(false);
+    try {
+      const saved = onUpdateBottles ? await onUpdateBottles(updated) : updated;
+      setBottles(saved);
+      setIsBottleModalOpen(false);
+      showToast(successMessage);
+    } catch (error) {
+      console.error('Failed to save bottle catalog:', error);
+      showToast(error instanceof Error ? error.message : 'Bottle changes could not be saved.');
+    }
   };
 
-  const handleDeleteBottle = (bottleId: number) => {
+  const handleDeleteBottle = async (bottleId: number) => {
     const target = bottles.find((b) => b.bottle_id === bottleId);
     if (!target) return;
     const updated = bottles.filter((b) => b.bottle_id !== bottleId);
-    setBottles(updated);
-    onUpdateBottles?.(updated);
-    showToast(`Bottle size "${target.size}" removed.`);
+    try {
+      const saved = onUpdateBottles ? await onUpdateBottles(updated) : updated;
+      setBottles(saved);
+      showToast(`Bottle size "${target.size}" removed.`);
+    } catch (error) {
+      console.error('Failed to remove bottle:', error);
+      showToast(error instanceof Error ? error.message : 'Bottle could not be removed.');
+    }
   };
 
-  const handleToggleBottleStock = (bottleId: number) => {
+  const handleToggleBottleStock = async (bottleId: number) => {
     const updated = bottles.map((b) =>
       b.bottle_id === bottleId ? { ...b, inStock: !b.inStock } : b
     );
-    setBottles(updated);
-    onUpdateBottles?.(updated);
     const target = updated.find((b) => b.bottle_id === bottleId);
-    showToast(`Bottle "${target?.size}" is now ${target?.inStock ? 'IN STOCK' : 'OUT OF STOCK'}.`);
+    try {
+      const saved = onUpdateBottles ? await onUpdateBottles(updated) : updated;
+      setBottles(saved);
+      showToast(`Bottle "${target?.size}" is now ${target?.inStock ? 'IN STOCK' : 'OUT OF STOCK'}.`);
+    } catch (error) {
+      console.error('Failed to update bottle availability:', error);
+      showToast(error instanceof Error ? error.message : 'Bottle availability could not be updated.');
+    }
   };
 
   // -------------------------------------------------------------
@@ -1191,17 +1213,12 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
     setOrders((prev) =>
       prev.map((ord) => (ord.order_id === orderId ? { ...ord, status: 'cancelled' } : ord))
     );
-    setPayments((prev) =>
-      prev.map((p) => (p.order_id === orderId ? { ...p, status: 'failed' } : p))
-    );
-
     if (selectedOrder && selectedOrder.order.order_id === orderId) {
       setSelectedOrder((prev) =>
         prev
           ? {
               ...prev,
               order: { ...prev.order, status: 'cancelled' },
-              payment: { ...prev.payment, status: 'failed' },
             }
           : null
       );
@@ -1210,34 +1227,34 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
     showToast(`Order #${orderId} cancelled by Admin.`);
   };
 
-  const handleSaveShipping = (shippingId: number) => {
-    setShippings((prev) =>
-      prev.map((s) =>
-        s.shipping_id === shippingId
-          ? {
-              ...s,
-              courier_name: shippingForm.courier || s.courier_name,
-              tracking_number: shippingForm.tracking || s.tracking_number,
-            }
-          : s
-      )
-    );
-    setIsEditingShipping(false);
-    showToast('Shipping courier and tracking details updated.');
-
-    if (selectedOrder && selectedOrder.shipping.shipping_id === shippingId) {
-      setSelectedOrder((prev) =>
-        prev
-          ? {
-              ...prev,
-              shipping: {
-                ...prev.shipping,
-                courier_name: shippingForm.courier || prev.shipping.courier_name,
-                tracking_number: shippingForm.tracking || prev.shipping.tracking_number,
-              },
-            }
-          : null
-      );
+  const handleSaveShipping = async (shippingId: number) => {
+    const current = shippings.find((shipping) => shipping.shipping_id === shippingId);
+    if (!current) {
+      showToast('Shipping record is unavailable.');
+      return;
+    }
+    try {
+      const saved = onUpdateShipping
+        ? await onUpdateShipping(shippingId, {
+            courierName: shippingForm.courier,
+            trackingNumber: shippingForm.tracking,
+          })
+        : {
+            ...current,
+            courier_name: shippingForm.courier,
+            tracking_number: shippingForm.tracking,
+          };
+      setShippings((previous) => previous.map((shipping) =>
+        shipping.shipping_id === shippingId ? saved : shipping
+      ));
+      setIsEditingShipping(false);
+      showToast('Shipping courier and tracking details updated.');
+      if (selectedOrder && selectedOrder.shipping.shipping_id === shippingId) {
+        setSelectedOrder((previous) => previous ? { ...previous, shipping: saved } : null);
+      }
+    } catch (error) {
+      console.error('Failed to update shipping details:', error);
+      showToast(error instanceof Error ? error.message : 'Shipping details could not be saved.');
     }
   };
 

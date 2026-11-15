@@ -4,7 +4,7 @@
  * Ei Thandar Kyaw - order API; Saw Keh Blu - chat API.
  */
 import { firebaseAuth } from './firebase';
-import type { CartItem, ApiBottle, ApiFormula, ApiPayment, ApiShipping } from './types';
+import type { CartItem, ApiBottle, ApiFormula, ApiIngredient, ApiPayment, ApiShipping } from './types';
 
 const apiBaseUrl = import.meta.env.VITE_API_URL
   || (import.meta.env.PROD
@@ -77,13 +77,9 @@ export const backendApi = {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     }),
-  verifyOrderPayment: (id: number) =>
-    request<ApiOrder>(`/api/orders/${id}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ paymentStatus: 'verified' }),
-    }),
   // New perfume-business entities (backend V3 migration)
   getBottles: () => request<ApiBottle[]>('/api/bottles'),
+  getIngredients: () => request<ApiIngredient[]>('/api/ingredients'),
   createBottle: (bottle: Omit<ApiBottle, 'bottleId'>) => request<ApiBottle>('/api/bottles', {
     method: 'POST', body: JSON.stringify({ size: bottle.size, bottleType: bottle.bottleType, price: bottle.price, available: bottle.available, description: bottle.description }),
   }),
@@ -92,7 +88,6 @@ export const backendApi = {
   }),
   deleteBottle: (id: number) => request<void>(`/api/bottles/${id}`, { method: 'DELETE' }),
   getMyFormulas: () => request<ApiFormula[]>('/api/formulas'),
-  getFormula: (id: number) => request<ApiFormula>(`/api/formulas/${id}`),
   createFormula: (formula: { formulaName: string; description?: string; details: { ingredientId: number; noteType: 'top' | 'heart' | 'base'; percentage?: number }[] }) =>
     request<ApiFormula>('/api/formulas', { method: 'POST', body: JSON.stringify(formula) }),
   getPayments: () => request<ApiPayment[]>('/api/payments'),

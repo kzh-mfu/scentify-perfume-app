@@ -16,6 +16,7 @@ interface ScentifyViewProps {
   bottles?: BottleOption[];
   rules?: CustomizationRule[];
   formulas?: MasterFormula[];
+  catalogError?: string | null;
 }
 
 export const ScentifyView: React.FC<ScentifyViewProps> = ({
@@ -26,6 +27,7 @@ export const ScentifyView: React.FC<ScentifyViewProps> = ({
   bottles = INITIAL_BOTTLE_OPTIONS,
   rules = INITIAL_CUSTOMIZATION_RULES,
   formulas = INITIAL_MASTER_FORMULAS,
+  catalogError,
 }) => {
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -59,6 +61,7 @@ export const ScentifyView: React.FC<ScentifyViewProps> = ({
       const remaining = selectedNotes.filter((n) => n !== ingName);
       onUpdateComposition({
         ...composition,
+        formulaId: undefined,
         topNote: remaining[0] || '',
         heartNote: remaining[1] || '',
         baseNote: remaining[2] || '',
@@ -70,6 +73,7 @@ export const ScentifyView: React.FC<ScentifyViewProps> = ({
         const next = [...selectedNotes, ingName];
         onUpdateComposition({
           ...composition,
+          formulaId: undefined,
           topNote: next[0] || '',
           heartNote: next[1] || '',
           baseNote: next[2] || '',
@@ -80,6 +84,7 @@ export const ScentifyView: React.FC<ScentifyViewProps> = ({
         const replaced = [...selectedNotes.slice(0, maxNotesAllowed - 1), ingName];
         onUpdateComposition({
           ...composition,
+          formulaId: undefined,
           topNote: replaced[0] || '',
           heartNote: replaced[1] || '',
           baseNote: replaced[2] || '',
@@ -93,12 +98,16 @@ export const ScentifyView: React.FC<ScentifyViewProps> = ({
   };
 
   const handleApplyFormula = (formula: MasterFormula) => {
+    const recommendedBottle = bottles.find((bottle) => bottle.size === formula.recommendedBottle);
     onUpdateComposition({
       ...composition,
+      formulaId: formula.formulaId,
       topNote: formula.topNote,
       heartNote: formula.heartNote,
       baseNote: formula.baseNote,
       bottleSize: formula.recommendedBottle || composition.bottleSize,
+      bottleType: recommendedBottle?.bottleType || composition.bottleType,
+      bottleId: recommendedBottle?.bottle_id || composition.bottleId,
     });
     setNotice(`Loaded Master Formula: "${formula.name}"`);
     setTimeout(() => setNotice(null), 3500);
@@ -107,6 +116,7 @@ export const ScentifyView: React.FC<ScentifyViewProps> = ({
   const handleResetToDefault = () => {
     onUpdateComposition({
       ...composition,
+      formulaId: undefined,
       topNote: 'Bergamot',
       heartNote: 'Jasmine',
       baseNote: 'Sandalwood',
@@ -216,6 +226,11 @@ export const ScentifyView: React.FC<ScentifyViewProps> = ({
       {/* Subhead & Olfactory Rules Guidance */}
       <section className="py-6 border-b border-[#DAD1C5]/30 bg-white/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {catalogError && (
+            <div role="alert" className="mb-4 border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-900">
+              {catalogError}
+            </div>
+          )}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <span className="text-[10px] uppercase tracking-[0.25em] text-[#C9A25C] font-semibold block mb-1">
@@ -412,10 +427,13 @@ export const ScentifyView: React.FC<ScentifyViewProps> = ({
                       onUpdateComposition({
                         ...composition,
                         bottleSize: b.size,
+                        bottleType: b.bottleType,
+                        bottleId: b.bottle_id,
                       })
                     }
                     className={`px-2.5 py-1 text-[11px] font-mono transition-colors ${
-                      composition.bottleSize === b.size
+                      composition.bottleId === b.bottle_id ||
+                      (!composition.bottleId && composition.bottleSize === b.size && composition.bottleType === b.bottleType)
                         ? 'bg-[#28192A] text-[#FBF7F0] font-semibold'
                         : 'text-[#6B6166] hover:text-[#28192A]'
                     }`}
