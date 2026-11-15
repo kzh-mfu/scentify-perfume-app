@@ -1305,17 +1305,6 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
     }
   };
 
-  const handleAdjustStock = (ingredientId: number, delta: number) => {
-    setIngredients((prev) =>
-      prev.map((ing) =>
-        ing.ingredient_id === ingredientId
-          ? { ...ing, stock_qty: Math.max(0, ing.stock_qty + delta) }
-          : ing
-      )
-    );
-    showToast('Ingredient stock adjusted.');
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -2374,23 +2363,9 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
                           </span>
                         </td>
                         <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleAdjustStock(ing.ingredient_id, -5)}
-                              className="w-6 h-6 border border-[#DAD1C5] text-[#28192A] hover:bg-[#FBF7F0] flex items-center justify-center font-bold"
-                            >
-                              -
-                            </button>
-                            <span className="font-mono text-xs w-10 text-center font-medium">
-                              {ing.stock_qty}
-                            </span>
-                            <button
-                              onClick={() => handleAdjustStock(ing.ingredient_id, 5)}
-                              className="w-6 h-6 border border-[#DAD1C5] text-[#28192A] hover:bg-[#FBF7F0] flex items-center justify-center font-bold"
-                            >
-                              +
-                            </button>
-                          </div>
+                          <span className="font-mono text-xs font-medium">
+                            {ing.stock_qty}
+                          </span>
                         </td>
                         <td className="py-3 px-4">
                           {ing.stock_qty <= 20 ? (
