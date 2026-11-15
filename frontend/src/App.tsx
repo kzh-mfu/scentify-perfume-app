@@ -1056,6 +1056,28 @@ export default function App() {
 
       {/* Main Content Router */}
       <main className="flex-1">
+        {currentView === 'admin' && !isAdminUser && (
+          <section
+            className="min-h-[65vh] flex items-center justify-center px-6 text-center"
+            role="alert"
+          >
+            <div className="max-w-md">
+              <p className="text-xs uppercase tracking-[0.25em] text-[#C9A25C]">Studio Console</p>
+              <h1 className="mt-3 font-serif text-3xl text-[#28192A]">Access denied</h1>
+              <p className="mt-3 text-sm text-[#6B6166]">
+                You do not have authority to access the admin portal.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigateTo('home')}
+                className="mt-6 border border-[#28192A] px-6 py-3 text-xs uppercase tracking-[0.18em] text-[#28192A]"
+              >
+                Return to storefront
+              </button>
+            </div>
+          </section>
+        )}
+
         {currentView === 'home' && (
           <HomeView
             onNavigate={navigateTo}
@@ -1197,7 +1219,7 @@ export default function App() {
 
       {/* Modals & Overlays */}
       <AuthModal
-        isOpen={authModalOpen}
+        isOpen={authModalOpen && !(currentView === 'admin' && !isAdminUser)}
         initialMode={authModalMode}
         onClose={() => setAuthModalOpen(false)}
         onLoginSuccess={(name, email, role) => {
