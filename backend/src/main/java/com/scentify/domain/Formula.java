@@ -27,6 +27,10 @@ public class Formula {
   @Column(name = "is_active", nullable = false) 
   private boolean active = true;
 
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "recommended_bottle_id")
+  private Bottle recommendedBottle;
+
   @Column(name = "created_at", insertable = false, updatable = false) 
   private OffsetDateTime createdAt;
 
@@ -48,6 +52,10 @@ public class Formula {
     detail.setFormula(this);
     }
 
+  public void clearDetails() {
+    details.clear();
+  }
+
   public Long getId(){return id;} 
   public String getUserId(){return userId;}
   public String getFormulaName(){return formulaName;} 
@@ -56,6 +64,8 @@ public class Formula {
   public void setDescription(String v){description=v;}
   public boolean isActive(){return active;} 
   public void setActive(boolean v){active=v;}
+  public Bottle getRecommendedBottle(){return recommendedBottle;}
+  public void setRecommendedBottle(Bottle v){recommendedBottle=v;}
   public OffsetDateTime getCreatedAt(){return createdAt;} 
   public List<FormulaDetail> getDetails(){return details;}
 }

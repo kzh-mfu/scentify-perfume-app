@@ -9,4 +9,7 @@ public interface FormulaRepository extends JpaRepository<Formula, Long> {
 
     @EntityGraph(attributePaths = {"details", "details.ingredient"})
     List<Formula> findByUserIdOrderByCreatedAtDesc(String userId);
+
+    @EntityGraph(attributePaths = {"details", "details.ingredient", "recommendedBottle"})
+    List<Formula> findByUserIdIsNullOrderByCreatedAtDesc();
 }

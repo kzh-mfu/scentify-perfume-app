@@ -146,7 +146,12 @@ public class OrderController {
       if (item.hasNonNull("formulaId")) {
         formula = formulas.findById(item.path("formulaId").asLong())
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Formula not found."));
-        if (!userId.equals(formula.getUserId())) currentUser.requireStaff(authentication);
+        if (!formula.isActive()) {
+          throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Formula is unavailable.");
+        }
+        if (formula.getUserId() != null && !userId.equals(formula.getUserId())) {
+          currentUser.requireStaff(authentication);
+        }
       }
       if (item.hasNonNull("bottleId")) {
         bottle = bottles.findById(item.path("bottleId").asLong())

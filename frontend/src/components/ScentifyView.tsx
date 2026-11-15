@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { Check, Plus, ArrowRight, Sparkles, RefreshCw, AlertCircle, Info, Sliders, FlaskConical } from 'lucide-react';
 import { Composition, ViewMode, Ingredient, ScentFamily, BottleOption, CustomizationRule, MasterFormula } from '../types';
 import { SCENT_FAMILIES } from '../data/perfumeData';
-import { INITIAL_BOTTLE_OPTIONS, INITIAL_CUSTOMIZATION_RULES, INITIAL_MASTER_FORMULAS } from '../data/adminDatabaseData';
+import { INITIAL_CUSTOMIZATION_RULES } from '../data/adminDatabaseData';
 
 interface ScentifyViewProps {
   composition: Composition;
@@ -24,9 +24,9 @@ export const ScentifyView: React.FC<ScentifyViewProps> = ({
   onUpdateComposition,
   onNavigate,
   scentFamilies = SCENT_FAMILIES,
-  bottles = INITIAL_BOTTLE_OPTIONS,
+  bottles = [],
   rules = INITIAL_CUSTOMIZATION_RULES,
-  formulas = INITIAL_MASTER_FORMULAS,
+  formulas = [],
   catalogError,
 }) => {
   const [notice, setNotice] = useState<string | null>(null);

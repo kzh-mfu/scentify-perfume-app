@@ -31,7 +31,8 @@ mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=local
 
 The unauthenticated health endpoint is available at `GET /api/health`.
 Business controllers are protected by Spring Security and require a valid
-Google Identity Platform JWT.
+Google Identity Platform JWT, except for the public bottle and active master
+formula catalogs.
 
 The default local database is `jdbc:mysql://localhost:3306/scentify`.
 Flyway creates the schema in `src/main/resources/db/migration` on first
@@ -45,12 +46,23 @@ Identity Platform JWTs:
 - `GET|PUT /api/profile`
 - `GET /api/ingredients?search=...`
 - `POST|PUT|DELETE /api/ingredients`
+- `GET /api/bottles`; staff `POST|PUT|DELETE /api/bottles`
+- `GET /api/formulas` and `POST /api/formulas` for a signed-in user's formulas
+- `GET /api/formulas/catalog` for active public master formulas
+- Staff `GET /api/formulas/catalog/manage` and `POST|PUT|DELETE /api/formulas/catalog`
 - `GET /api/orders/mine`
 - `GET /api/orders` and `POST /api/orders`
 - `PATCH /api/orders/{id}/status`
+- Staff `GET /api/payments`, with customer `POST /api/payments` and staff
+  `PATCH /api/payments/{id}/verify`
+- Staff `GET /api/shipping`, `POST /api/shipping`, and `PATCH /api/shipping/{id}`
 - `GET|POST /api/chat/messages`
 - `GET|POST /api/chat/admin/messages`
 - `POST /api/admin/staff`
+
+Flyway migration V4 seeds the bottle and master-formula catalogs, including
+their formula-detail ingredient links. Payments and shipping records are
+created from real orders rather than seeded as standalone records.
 
 The backend uses Application Default Credentials to administer Identity
 Platform users. Grant the Cloud Run service account Identity Platform

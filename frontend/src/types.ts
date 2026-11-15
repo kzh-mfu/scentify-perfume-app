@@ -256,26 +256,26 @@ export interface AdminStaffUser {
 
 // API contracts for the five new backend entities. IDs use numbers; Firebase user IDs use strings.
 export interface ApiBottle {
-  bottleId: number; size: number; bottleType: string; price: number; available: boolean; description?: string;
+  bottleId: number; size: number; bottleType: string; price: number; available: boolean; description?: string | null;
 }
 export interface ApiIngredient {
   id: number; name: string; scentFamily: string; description: string; available: boolean;
 }
 export interface ApiFormulaDetail {
   formulaDetailId: number; ingredientId: number; ingredientName: string;
-  noteType: 'top' | 'heart' | 'base'; percentage?: number;
+  noteType: 'top' | 'heart' | 'base'; percentage?: number | null;
 }
 export interface ApiFormula {
-  formulaId: number; userId: string; formulaName: string; description?: string;
-  active: boolean; createdAt?: string; details: ApiFormulaDetail[];
+  formulaId: number; userId: string | null; formulaName: string; description?: string | null;
+  active: boolean; createdAt?: string | null; recommendedBottleId?: number | null; details: ApiFormulaDetail[];
 }
 export interface ApiPayment {
-  paymentId: number; orderId: number; paymentMethod: string; receiptUrl?: string;
-  transactionReference?: string; status: 'pending' | 'verified' | 'failed'; verifiedAt?: string; createdAt?: string;
+  paymentId: number; orderId: number; paymentMethod: string; receiptUrl?: string | null;
+  transactionReference?: string | null; status: 'pending' | 'verified' | 'failed'; verifiedAt?: string | null; createdAt?: string | null;
 }
 export interface ApiShipping {
-  shippingId: number; orderId: number; shippingFee: number; trackingNumber?: string;
-  courierName?: string; shippingAddress: string;
+  shippingId: number; orderId: number; shippingFee: number; trackingNumber?: string | null;
+  courierName?: string | null; shippingAddress: string;
   shippingStatus: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  shippedAt?: string; deliveredAt?: string;
+  shippedAt?: string | null; deliveredAt?: string | null;
 }
