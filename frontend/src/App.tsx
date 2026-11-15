@@ -625,6 +625,7 @@ export default function App() {
               setDbOrders(rows.map((row) => ({
                 order_id: Number(row.id),
                 user_id: row.userId,
+                shipping_address: row.shippingAddress,
                 order_date: row.createdAt,
                 status:
                   row.status === 'processing' ||
@@ -885,6 +886,7 @@ export default function App() {
     const newDbOrder: DbOrder = {
       order_id: numericOrderId,
       user_id: authenticatedUser.id,
+      shipping_address: savedOrder.shippingAddress,
       order_date: savedOrder.createdAt,
       status: 'pending',
       total_price: payload.total,
@@ -913,19 +915,25 @@ export default function App() {
   const handleAdminConfirmOrder = async (orderId: number) => {
     const payment = dbPayments.find((entry) => entry.order_id === orderId);
     if (!payment) throw new Error('No backend payment record exists for this order.');
-    const verifiedPayment = await backendApi.verifyPayment(payment.payment_id);
     const dbOrder = dbOrders.find((entry) => entry.order_id === orderId);
     if (!dbOrder) throw new Error('Order details are unavailable for shipping creation.');
     const existingShippingRows = await backendApi.getShippingRecords();
     let shipping = existingShippingRows.find((entry) => entry.orderId === orderId);
+    const shippingAddress =
+      dbOrder.shipping_address?.trim() ||
+      dbUsers.find((user) => user.id === dbOrder.user_id)?.address.trim() ||
+      '';
+    if (!shipping && !shippingAddress) {
+      throw new Error('Shipping address is unavailable for this order.');
+    }
+
+    const verifiedPayment = await backendApi.verifyPayment(payment.payment_id);
     if (!shipping) {
-      const address = dbUsers.find((user) => user.id === dbOrder.user_id)?.address;
-      if (!address) throw new Error('Shipping address is unavailable for this order.');
       const subtotal = (dbOrder.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0);
       shipping = await backendApi.createShipping({
         orderId,
         shippingFee: subtotal > 1500 ? 0 : 50,
-        shippingAddress: address,
+        shippingAddress,
       });
     }
     await backendApi.updateOrderStatus(orderId, 'processing');

@@ -116,6 +116,7 @@ export interface DbOrder {
   order_id: number;
   shipping_id?: number;
   user_id: string | number;
+  shipping_address?: string;
   order_date: string;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   total_price: number;
