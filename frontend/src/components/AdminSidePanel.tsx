@@ -27,6 +27,7 @@ import {
   ArrowUpRight,
   ExternalLink,
   ChevronRight,
+  ChevronDown,
   ShieldCheck,
   Camera,
   RefreshCw,
@@ -3427,36 +3428,39 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
 
             {/* Quick Status Adjustments */}
             <div className="flex items-center justify-between pt-4 border-t border-[#DAD1C5]/40 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="text-[#6B6166]">Status:</span>
-                <select
-                  aria-label={`Order ${selectedOrder.order.order_id} status`}
-                  value={selectedOrder.order.status}
-                  onChange={(event) => {
-                    const orderId = selectedOrder.order.order_id;
-                    const status = event.target.value;
-                    if (status === 'cancelled') {
-                      void handleCancelOrder(orderId);
-                    } else if (status === 'processing' || status === 'completed') {
-                      void handleUpdateOrderStatus(orderId, status);
-                    }
-                  }}
-                  className={`cursor-pointer appearance-none border-0 px-2 py-1 uppercase font-mono font-bold text-[10px] focus:outline-none focus:ring-2 focus:ring-[#8B6F47] ${
-                    selectedOrder.order.status === 'completed'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : selectedOrder.order.status === 'processing'
-                        ? 'bg-amber-100 text-amber-800'
-                        : selectedOrder.order.status === 'cancelled'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  <option value="pending">Pending</option>
-                  <option value="processing">Processing</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancel Order</option>
-                </select>
-              </div>
+              <label className="flex items-center gap-3">
+                <span className="font-semibold text-[#6B6166]">Change order status</span>
+                <span className="relative">
+                  <select
+                    aria-label={`Order ${selectedOrder.order.order_id} status`}
+                    value={selectedOrder.order.status}
+                    onChange={(event) => {
+                      const orderId = selectedOrder.order.order_id;
+                      const status = event.target.value as DbOrder['status'];
+                      if (status === 'cancelled') {
+                        void handleCancelOrder(orderId);
+                      } else {
+                        void handleUpdateOrderStatus(orderId, status);
+                      }
+                    }}
+                    className={`cursor-pointer appearance-none border border-[#B9AA98] rounded-sm pl-3 pr-9 py-2 uppercase font-mono font-bold text-[10px] focus:outline-none focus:ring-2 focus:ring-[#8B6F47] ${
+                      selectedOrder.order.status === 'completed'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : selectedOrder.order.status === 'processing'
+                          ? 'bg-amber-100 text-amber-800'
+                          : selectedOrder.order.status === 'cancelled'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="processing">Processing</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-current" />
+                </span>
+              </label>
 
               <button
                 onClick={() => setSelectedOrder(null)}
