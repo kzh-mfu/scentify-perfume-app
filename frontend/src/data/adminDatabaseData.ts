@@ -20,46 +20,7 @@ import {
 } from '../types';
 
 export const INITIAL_DB_USERS: DbUser[] = [
-  {
-    id: 1,
-    name: 'Somchai Prasert',
-    email: 'somchai.p@gmail.com',
-    phone: '+66 81 234 5678',
-    address: '88 Sukhumvit Soi 55, Thong Lo, Watthana, Bangkok 10110',
-    role: 'customer',
-  },
-  {
-    id: 2,
-    name: 'Apinya Srisuk',
-    email: 'apinya.s@outlook.com',
-    phone: '+66 89 876 5432',
-    address: '42 Nimmanahaeminda Rd, Suthep, Mueang Chiang Mai 50200',
-    role: 'customer',
-  },
-  {
-    id: 3,
-    name: 'Krit Charoenpol',
-    email: 'krit.c@techcorp.co.th',
-    phone: '+66 92 345 6789',
-    address: '15/2 Silom Rd, Suriyawong, Bang Rak, Bangkok 10500',
-    role: 'customer',
-  },
-  {
-    id: 4,
-    name: 'Napat Wongsuwan',
-    email: 'napat.w@yahoo.com',
-    phone: '+66 84 567 8901',
-    address: '109 Beach Road, Patong, Kathu, Phuket 83150',
-    role: 'customer',
-  },
-  {
-    id: 99,
-    name: 'Scentify Studio Master Perfumer',
-    email: 'admin@scentify.com',
-    phone: '+66 2 123 4567',
-    address: '123 Riverside Botanical Studio, Muang District, Chiang Rai 57000',
-    role: 'admin',
-  },
+  
 ];
 
 export const INITIAL_DB_INGREDIENTS: DbIngredient[] = [
@@ -489,34 +450,5 @@ export const INITIAL_MASTER_FORMULAS: MasterFormula[] = [
 ];
 
 export const INITIAL_ADMIN_USERS: AdminStaffUser[] = [
-  {
-    id: 99,
-    name: 'Scentify Studio Master Perfumer',
-    email: 'admin@scentify.com',
-    role: 'admin',
-    title: 'Master Perfumer & Studio Director',
-    phone: '+66 2 123 4567',
-    active: true,
-    createdAt: '2026-01-01T00:00:00Z',
-  },
-  {
-    id: 98,
-    name: 'Ariya Vong',
-    email: 'ariya.v@scentify.com',
-    role: 'perfumer',
-    title: 'Senior Botanical Formulation Specialist',
-    phone: '+66 2 123 4568',
-    active: true,
-    createdAt: '2026-02-15T00:00:00Z',
-  },
-  {
-    id: 97,
-    name: 'Chaiwat Na Chiangmai',
-    email: 'chaiwat.c@scentify.com',
-    role: 'staff',
-    title: 'Studio Inventory & Fulfilment Lead',
-    phone: '+66 2 123 4569',
-    active: true,
-    createdAt: '2026-03-01T00:00:00Z',
-  },
+  
 ];
