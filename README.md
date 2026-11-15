@@ -24,6 +24,11 @@ GitHub repository:
 
 https://github.com/kzh-mfu/scentify-perfume-app
 
+Deployment Link:
+https://scentify-513806.web.app/
+
+https://github.com/kzh-mfu/scentify-perfume-app
+
 Each team member must commit to this repository to receive individual
 contribution credit.
 
