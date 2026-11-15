@@ -1,3 +1,4 @@
+-- Version 4 is already used by the order ID sequence migration.
 ALTER TABLE formulas
   ADD COLUMN recommended_bottle_id BIGINT NULL,
   ADD CONSTRAINT fk_formulas_recommended_bottle

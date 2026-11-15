@@ -60,7 +60,7 @@ Identity Platform JWTs:
 - `GET|POST /api/chat/admin/messages`
 - `POST /api/admin/staff`
 
-Flyway migration V4 seeds the bottle and master-formula catalogs, including
+Flyway migration V5 seeds the bottle and master-formula catalogs, including
 their formula-detail ingredient links. Payments and shipping records are
 created from real orders rather than seeded as standalone records.
 
