@@ -192,7 +192,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setLoading(true);
     try {
-      const { error } = await firebaseAuth.auth.signInWithOAuth({
+      const { data, error } = await firebaseAuth.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
@@ -200,11 +200,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       });
 
       if (error) throw error;
+
+      if (!data.user) {
+        throw new Error('Google sign-in did not return a user session.');
+      }
+
+      const displayName =
+        data.user.user_metadata?.display_name ||
+        data.user.user_metadata?.full_name ||
+        data.user.email?.split('@')[0] ||
+        'Studio Member';
+      const role = data.user.app_metadata?.role;
+      const isStudioStaff = role === 'admin' || role === 'staff' || role === 'perfumer';
+
+      onLoginSuccess(
+        displayName,
+        data.user.email || '',
+        isStudioStaff ? role : 'customer'
+      );
+      if (isStudioStaff) {
+        onAdminLogin?.();
+      }
+      onClose();
     } catch (error) {
       console.error('Error logging in with Google:', error);
       setErrorMsg(
         error instanceof Error ? error.message : 'Google sign-in could not be completed.'
       );
+    } finally {
       setLoading(false);
     }
   };

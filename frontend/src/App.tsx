@@ -295,13 +295,13 @@ export default function App() {
       try {
         const data = await backendApi.getChatMessages();
         if (active) {
-        setChatMessages(data.map((row) => ({
-          id: row.id,
-          sender: row.senderRole === 'admin' ? 'studio' : 'user',
-          text: row.message,
-          timestamp: formatChatMessageTime(row.createdAt),
-        })));
-        setChatLoadError(null);
+          setChatMessages(data.map((row) => ({
+            id: row.id,
+            sender: row.senderRole === 'admin' ? 'studio' : 'user',
+            text: row.message,
+            timestamp: formatChatMessageTime(row.createdAt),
+          })));
+          setChatLoadError(null);
         }
       } catch (error) {
         console.error('Failed to load customer chat messages:', error);
@@ -310,9 +310,13 @@ export default function App() {
     };
 
     void loadMessages();
+    const refreshTimer = window.setInterval(() => {
+      void loadMessages();
+    }, 3000);
 
     return () => {
       active = false;
+      window.clearInterval(refreshTimer);
     };
   }, [authenticatedUser?.id, isAdminUser]);
 
@@ -452,6 +456,7 @@ export default function App() {
             setDbUsers((current) => [
               ...savedOrders.map(({ row, adminId }) => ({
                 id: adminId,
+                authUserId: row.userId,
                 name: row.customerName,
                 email: row.customerEmail,
                 phone: row.customerPhone,
@@ -883,6 +888,18 @@ export default function App() {
                 setAuthModalMode('signup');
                 setAuthModalOpen(true);
               } else {
+                setOrder((previous) => ({
+                  ...previous,
+                  orderId: createOrderNumber(),
+                  items: [],
+                  paymentSlipUrl: undefined,
+                  status: 'awaiting_confirmation',
+                  subtotal: 0,
+                  shipping: 0,
+                  tax: 0,
+                  discount: 0,
+                  total: 0,
+                }));
                 navigateTo('review-order');
               }
             }}

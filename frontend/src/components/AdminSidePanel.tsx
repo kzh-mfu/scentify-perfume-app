@@ -166,6 +166,18 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
   const [orderItems, setOrderItems] = useState<DbOrderItem[]>(
     propOrderItems || INITIAL_DB_ORDER_ITEMS
   );
+  const uniqueUsers = React.useMemo(() => {
+    const usersByEmail = new Map<string, DbUser>();
+
+    users.forEach((user) => {
+      const email = user.email.trim().toLowerCase();
+      if (!usersByEmail.has(email)) {
+        usersByEmail.set(email, user);
+      }
+    });
+
+    return Array.from(usersByEmail.values());
+  }, [users]);
 
   // Dynamic modules state
   const [bottles, setBottles] = useState<BottleOption[]>(propBottles || INITIAL_BOTTLE_OPTIONS);
@@ -221,6 +233,17 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
     setTimeout(() => setNotification(null), 3500);
   };
 
+  const handleMessageCustomer = (order: EnrichedOrder) => {
+    const customerId = order.user.authUserId;
+    if (!customerId) {
+      showToast('This order is not linked to an authenticated customer account.');
+      return;
+    }
+
+    setChatTarget({ id: customerId, name: order.user.name });
+    setActiveTab('messages');
+  };
+
   // Orders Filter & Modal State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<
@@ -230,6 +253,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
     'all'
   );
   const [selectedOrder, setSelectedOrder] = useState<EnrichedOrder | null>(null);
+  const [chatTarget, setChatTarget] = useState<{ id: string; name: string } | null>(null);
   const [isEditingShipping, setIsEditingShipping] = useState(false);
   const [shippingForm, setShippingForm] = useState<{ courier: string; tracking: string }>({
     courier: '',
@@ -1399,7 +1423,11 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
 
         {activeTab === 'messages' && (
-          <AdminChatView adminName={adminUser || 'Scentify Studio'} />
+          <AdminChatView
+            adminName={adminUser || 'Scentify Studio'}
+            initialCustomerId={chatTarget?.id}
+            initialCustomerName={chatTarget?.name}
+          />
         )}
         
         {/* ========================================================================= */}
@@ -1822,6 +1850,13 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
                                   Verify
                                 </button>
                               )}
+                              <button
+                                onClick={() => handleMessageCustomer(eo)}
+                                className="px-2 py-1 border border-[#C9A25C] text-[#28192A] hover:bg-[#C9A25C]/10 text-[10px] uppercase font-mono transition-colors"
+                                title="Send message to customer"
+                              >
+                                Message
+                              </button>
                               <button
                                 onClick={() => {
                                   setSelectedOrder(eo);
@@ -2450,7 +2485,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="bg-[#FBF7F0] border border-[#DAD1C5] p-5 shadow-xs">
               <h3 className="font-serif text-2xl text-[#28192A]">
-                Studio Members &amp; Registered Clients ({users.length})
+                Studio Members &amp; Registered Clients ({uniqueUsers.length})
               </h3>
               <p className="text-xs text-[#6B6166] mt-1">
                 Directory of customer accounts, delivery addresses, and customer profiles.
@@ -2471,7 +2506,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#DAD1C5]/40 font-light">
-                    {users.map((u) => (
+                    {uniqueUsers.map((u) => (
                       <tr key={u.id} className="hover:bg-[#FBF7F0]/60 transition-colors">
                         <td className="py-3.5 px-4 font-mono font-medium text-[#28192A]">
                           #{u.id}

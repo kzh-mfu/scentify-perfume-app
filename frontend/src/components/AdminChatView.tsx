@@ -24,12 +24,20 @@ interface CustomerProfile {
 
 interface AdminChatViewProps {
   adminName: string;
+  initialCustomerId?: string;
+  initialCustomerName?: string;
 }
 
-export const AdminChatView: React.FC<AdminChatViewProps> = ({ adminName }) => {
+export const AdminChatView: React.FC<AdminChatViewProps> = ({
+  adminName,
+  initialCustomerId,
+  initialCustomerName,
+}) => {
   const [messages, setMessages] = useState<StudioChatMessage[]>([]);
   const [profiles, setProfiles] = useState<Map<string, string>>(new Map());
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
+    initialCustomerId || null
+  );
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
@@ -39,8 +47,8 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({ adminName }) => {
   useEffect(() => {
     let active = true;
 
-    const loadChat = async () => {
-      setIsLoading(true);
+    const loadChat = async (initialLoad = false) => {
+      if (initialLoad) setIsLoading(true);
       setErrorMessage(null);
 
       try {
@@ -66,10 +74,14 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({ adminName }) => {
       }
     };
 
-    void loadChat();
+    void loadChat(true);
+    const refreshTimer = window.setInterval(() => {
+      void loadChat();
+    }, 3000);
 
     return () => {
       active = false;
+      window.clearInterval(refreshTimer);
     };
   }, []);
 
@@ -93,10 +105,27 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({ adminName }) => {
       );
   }, [messages]);
 
+  const getCustomerName = (customerId: string) =>
+    profiles.get(customerId) ||
+    messages.find((message) => message.user_id === customerId)?.customer_name ||
+    (customerId === initialCustomerId ? initialCustomerName : undefined) ||
+    `Customer ${customerId.slice(0, 8)}`;
+
   const selectedConversation = conversations.find(
     (conversation) => conversation.customerId === selectedCustomerId
   );
   const selectedMessages = selectedConversation?.messages || [];
+  const selectedCustomerName = selectedCustomerId
+    ? getCustomerName(selectedCustomerId)
+    : null;
+  const hasSelectedCustomer = Boolean(
+    selectedCustomerId &&
+      (selectedConversation || initialCustomerId === selectedCustomerId)
+  );
+
+  useEffect(() => {
+    setSelectedCustomerId(initialCustomerId || null);
+  }, [initialCustomerId]);
 
   useEffect(() => {
     if (!selectedCustomerId && conversations.length > 0) {
@@ -104,6 +133,7 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({ adminName }) => {
     } else if (
       selectedCustomerId &&
       conversations.length > 0 &&
+      selectedCustomerId !== initialCustomerId &&
       !conversations.some((conversation) => conversation.customerId === selectedCustomerId)
     ) {
       setSelectedCustomerId(conversations[0].customerId);
@@ -150,11 +180,6 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({ adminName }) => {
       setIsSending(false);
     }
   };
-
-  const getCustomerName = (customerId: string) =>
-    profiles.get(customerId) ||
-    messages.find((message) => message.user_id === customerId)?.customer_name ||
-    `Customer ${customerId.slice(0, 8)}`;
 
   return (
     <section className="space-y-6">
@@ -221,11 +246,11 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({ adminName }) => {
         </aside>
 
         <div className="flex min-h-[520px] flex-col md:col-span-2">
-          {selectedConversation ? (
+          {hasSelectedCustomer ? (
             <>
               <div className="border-b border-[#DAD1C5] px-5 py-4">
                 <h3 className="font-serif text-lg text-[#28192A]">
-                  {getCustomerName(selectedConversation.customerId)}
+                  {selectedCustomerName}
                 </h3>
                 <p className="text-[11px] text-[#6B6166]">Customer conversation</p>
               </div>
