@@ -1,0 +1,1 @@
+alter table orders auto_increment = 10001;

@@ -605,10 +605,11 @@ export default function App() {
       paymentSlipUrl: payload.slipUrl,
       items: placedItems,
     });
+    const savedOrderNumber = savedOrder.orderNumber || String(savedOrder.id);
 
     setPurchaseHistory((previous) => [
       {
-        orderId: payload.orderId,
+        orderId: savedOrderNumber,
         date: savedOrder.createdAt,
         status: 'Awaiting payment verification',
         total: payload.total,
@@ -678,7 +679,7 @@ export default function App() {
     setCartItems([]);
     setOrder((prev) => ({
       ...prev,
-      orderId: payload.orderId,
+      orderId: savedOrderNumber,
       paymentSlipUrl: payload.slipUrl,
       items: placedItems,
       subtotal: placedItems.reduce((sum, item) => sum + item.price * item.quantity, 0),

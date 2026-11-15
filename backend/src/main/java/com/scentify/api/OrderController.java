@@ -15,7 +15,6 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -30,6 +29,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Iterator;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -68,17 +68,11 @@ public class OrderController {
   @ResponseStatus(HttpStatus.CREATED)
   public OrderResponse create(Authentication authentication, @Valid @RequestBody CreateOrderRequest request) {
     var userId = currentUser.id(authentication);
-    if (orders.existsByOrderNumber(request.orderNumber())) {
-      throw new ResponseStatusException(
-          HttpStatus.CONFLICT,
-          "An order with this order number already exists."
-      );
-    }
     profiles.findById(userId).orElseGet(() ->
         profiles.save(new Profile(userId, request.customerName(), "{}")));
 
     Order order = new Order();
-    order.setOrderNumber(request.orderNumber());
+    order.setOrderNumber("PENDING-" + UUID.randomUUID());
     order.setUserId(userId);
     order.setCustomerName(request.customerName());
     order.setCustomerEmail(request.customerEmail());
@@ -90,7 +84,9 @@ public class OrderController {
     order.setPaymentSlipUrl(request.paymentSlipUrl());
     order.setItems(writeJson(request.items()));
     addOrderItems(order, request.items());
-    return response(orders.save(order));
+    Order savedOrder = orders.save(order);
+    savedOrder.setOrderNumber(String.valueOf(savedOrder.getId()));
+    return response(orders.save(savedOrder));
   }
 
   @PatchMapping("/{id}/status")
