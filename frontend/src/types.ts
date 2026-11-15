@@ -28,7 +28,9 @@ export interface Composition {
   baseNote: string;
   bottleSize: string;
   bottleType: string;
+  bottleId?: number;
   name?: string;
+  formulaId?: number;
 }
 
 export interface CartItem {
@@ -44,6 +46,7 @@ export interface CartItem {
   details?: {
     notes?: string[];
     size?: string;
+    bottleType?: string;
   };
 }
 
@@ -99,8 +102,7 @@ export type ViewMode =
 
 // Relational Database Diagram Entities
 export interface DbUser {
-  id: string;
-  id: number;
+  id: string | number;
   authUserId?: string;
   name: string;
   email: string;
@@ -111,8 +113,8 @@ export interface DbUser {
 
 export interface DbOrder {
   order_id: number;
-  shipping_id: number;
-  user_id: string;
+  shipping_id?: number;
+  user_id: string | number;
   order_date: string;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   total_price: number;
@@ -122,10 +124,12 @@ export interface DbOrder {
 
 export interface DbShipping {
   shipping_id: number;
+  order_id?: number;
   shipping_fee: number;
   tracking_number: string;
   courier_name: string;
   shipping_address: string;
+  shipping_status?: ApiShipping['shippingStatus'];
 }
 
 export interface DbPayment {
@@ -226,6 +230,7 @@ export interface CustomizationRule {
 
 export interface MasterFormula {
   id: number;
+  formulaId?: number;
   name: string;
   topNote: string;
   heartNote: string;
@@ -252,6 +257,9 @@ export interface AdminStaffUser {
 // API contracts for the five new backend entities. IDs use numbers; Firebase user IDs use strings.
 export interface ApiBottle {
   bottleId: number; size: number; bottleType: string; price: number; available: boolean; description?: string;
+}
+export interface ApiIngredient {
+  id: number; name: string; scentFamily: string; description: string; available: boolean;
 }
 export interface ApiFormulaDetail {
   formulaDetailId: number; ingredientId: number; ingredientName: string;

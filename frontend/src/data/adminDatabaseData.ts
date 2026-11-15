@@ -235,8 +235,11 @@ export function buildEnrichedOrders(
       role: 'customer',
     };
 
-    const shipping = shippings.find((s) => s.shipping_id === order.shipping_id) || {
-      shipping_id: order.shipping_id,
+    const shipping = shippings.find(
+      (s) => s.order_id === order.order_id || s.shipping_id === order.shipping_id
+    ) || {
+      shipping_id: order.shipping_id || 0,
+      order_id: order.order_id,
       shipping_fee: 0,
       tracking_number: 'UNASSIGNED',
       courier_name: 'DHL Express',
@@ -244,7 +247,7 @@ export function buildEnrichedOrders(
     };
 
     const payment = payments.find((p) => p.order_id === order.order_id) || {
-      payment_id: 9999 + order.order_id,
+      payment_id: 0,
       order_id: order.order_id,
       qr_receipt_url: '',
       status: 'pending',
