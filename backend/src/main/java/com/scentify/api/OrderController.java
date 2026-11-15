@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -93,8 +94,10 @@ public class OrderController {
     order.setPaymentStatus("pending");
     order.setPaymentSlipUrl(request.paymentSlipUrl());
     order.setItems(writeJson(request.items()));
-    addOrderItems(order, request.items());
-    return response(orders.save(order));
+    addOrderItems(order, request.items(), userId, authentication);
+    Order savedOrder = orders.save(order);
+    savedOrder.setOrderNumber(String.valueOf(savedOrder.getId()));
+    return response(orders.save(savedOrder));
   }
 
   @PatchMapping("/{id}/status")
