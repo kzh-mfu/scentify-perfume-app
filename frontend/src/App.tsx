@@ -295,13 +295,13 @@ export default function App() {
       try {
         const data = await backendApi.getChatMessages();
         if (active) {
-        setChatMessages(data.map((row) => ({
-          id: row.id,
-          sender: row.senderRole === 'admin' ? 'studio' : 'user',
-          text: row.message,
-          timestamp: formatChatMessageTime(row.createdAt),
-        })));
-        setChatLoadError(null);
+          setChatMessages(data.map((row) => ({
+            id: row.id,
+            sender: row.senderRole === 'admin' ? 'studio' : 'user',
+            text: row.message,
+            timestamp: formatChatMessageTime(row.createdAt),
+          })));
+          setChatLoadError(null);
         }
       } catch (error) {
         console.error('Failed to load customer chat messages:', error);
@@ -310,9 +310,13 @@ export default function App() {
     };
 
     void loadMessages();
+    const refreshTimer = window.setInterval(() => {
+      void loadMessages();
+    }, 3000);
 
     return () => {
       active = false;
+      window.clearInterval(refreshTimer);
     };
   }, [authenticatedUser?.id, isAdminUser]);
 

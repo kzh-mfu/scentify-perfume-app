@@ -47,8 +47,8 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({
   useEffect(() => {
     let active = true;
 
-    const loadChat = async () => {
-      setIsLoading(true);
+    const loadChat = async (initialLoad = false) => {
+      if (initialLoad) setIsLoading(true);
       setErrorMessage(null);
 
       try {
@@ -74,10 +74,14 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({
       }
     };
 
-    void loadChat();
+    void loadChat(true);
+    const refreshTimer = window.setInterval(() => {
+      void loadChat();
+    }, 3000);
 
     return () => {
       active = false;
+      window.clearInterval(refreshTimer);
     };
   }, []);
 
