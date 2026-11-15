@@ -55,6 +55,12 @@ public class Order {
   @Column(nullable = false, columnDefinition = "text")
   private String items = "[]";
 
+  @Column(name = "stock_deductions", columnDefinition = "text")
+  private String stockDeductions = "[]";
+
+  @Column(name = "stock_restored", nullable = false)
+  private boolean stockRestored;
+
   @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<OrderItem> orderItems = new ArrayList<>();
 
@@ -162,6 +168,22 @@ public class Order {
 
   public void setItems(String items) {
     this.items = items;
+  }
+
+  public String getStockDeductions() {
+    return stockDeductions;
+  }
+
+  public void setStockDeductions(String stockDeductions) {
+    this.stockDeductions = stockDeductions;
+  }
+
+  public boolean isStockRestored() {
+    return stockRestored;
+  }
+
+  public void setStockRestored(boolean stockRestored) {
+    this.stockRestored = stockRestored;
   }
 
   public List<OrderItem> getOrderItems() {

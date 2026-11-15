@@ -153,6 +153,17 @@ function toBottleOption(bottle: ApiBottle): BottleOption {
   };
 }
 
+function toDbIngredient(ingredient: ApiIngredient): DbIngredient {
+  return {
+    ingredient_id: ingredient.id,
+    name: ingredient.name,
+    category: ingredient.scentFamily,
+    stock_qty: ingredient.stockMl,
+    description: ingredient.description,
+    available: ingredient.available,
+  };
+}
+
 function normalizeIngredientName(name: string): string {
   return name.replace(/\s*\([^)]*\)/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
@@ -226,6 +237,24 @@ export default function App() {
   // Backend catalog state and local-only customization rules
   const [bottles, setBottles] = useState<BottleOption[]>([]);
   const [ingredients, setIngredients] = useState<ApiIngredient[]>([]);
+  const handleIngredientCatalogRefresh = React.useCallback((rows: ApiIngredient[]) => {
+    setIngredients(rows);
+    setDbIngredients(rows.map(toDbIngredient));
+  }, []);
+  const handleIngredientSaved = React.useCallback((ingredient: ApiIngredient) => {
+    setIngredients((previous) => [
+      ...previous.filter((row) => row.id !== ingredient.id),
+      ingredient,
+    ]);
+    setDbIngredients((previous) => [
+      ...previous.filter((row) => row.ingredient_id !== ingredient.id),
+      toDbIngredient(ingredient),
+    ]);
+  }, []);
+  const handleIngredientDeleted = React.useCallback((ingredientId: number) => {
+    setIngredients((previous) => previous.filter((row) => row.id !== ingredientId));
+    setDbIngredients((previous) => previous.filter((row) => row.ingredient_id !== ingredientId));
+  }, []);
   const [savedFormulas, setSavedFormulas] = useState<MasterFormula[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [formulaLoadError, setFormulaLoadError] = useState<string | null>(null);
@@ -444,7 +473,10 @@ export default function App() {
       if (authenticatedUser) {
         try {
           const ingredientRows = await backendApi.getIngredients();
-          if (active) setIngredients(ingredientRows);
+          if (active) {
+            setIngredients(ingredientRows);
+            setDbIngredients(ingredientRows.map(toDbIngredient));
+          }
         } catch (error) {
           console.error('Failed to load ingredients:', error);
           failures.push(`ingredients: ${error instanceof Error ? error.message : 'Unexpected error'}`);
@@ -1108,6 +1140,9 @@ export default function App() {
         shippings={dbShippings}
         payments={dbPayments}
         ingredients={dbIngredients}
+        onIngredientCatalogRefresh={handleIngredientCatalogRefresh}
+        onIngredientSaved={handleIngredientSaved}
+        onIngredientDeleted={handleIngredientDeleted}
         formulas={dbFormulas}
         formulaDetails={dbFormulaDetails}
         orderItems={dbOrderItems}

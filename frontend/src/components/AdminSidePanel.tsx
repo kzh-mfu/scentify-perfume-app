@@ -67,6 +67,7 @@ import {
   AdminStaffUser,
   ScentFamily,
   Ingredient,
+  ApiIngredient,
 } from '../types';
 import {
   INITIAL_DB_USERS,
@@ -81,6 +82,17 @@ function formatLocalDateInput(date: Date): string {
   return localDate.toISOString().slice(0, 10);
 }
 
+function toDbIngredient(ingredient: ApiIngredient): DbIngredient {
+  return {
+    ingredient_id: ingredient.id,
+    name: ingredient.name,
+    category: ingredient.scentFamily,
+    stock_qty: ingredient.stockMl,
+    description: ingredient.description,
+    available: ingredient.available,
+  };
+}
+
 interface AdminSidePanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -92,6 +104,9 @@ interface AdminSidePanelProps {
   shippings?: DbShipping[];
   payments?: DbPayment[];
   ingredients?: DbIngredient[];
+  onIngredientCatalogRefresh?: (ingredients: ApiIngredient[]) => void;
+  onIngredientSaved?: (ingredient: ApiIngredient) => void;
+  onIngredientDeleted?: (ingredientId: number) => void;
   formulas?: DbFormula[];
   formulaDetails?: DbFormulaDetail[];
   orderItems?: DbOrderItem[];
@@ -130,6 +145,9 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
   shippings: propShippings,
   payments: propPayments,
   ingredients: propIngredients,
+  onIngredientCatalogRefresh,
+  onIngredientSaved,
+  onIngredientDeleted,
   formulas: propFormulas,
   formulaDetails: propFormulaDetails,
   orderItems: propOrderItems,
@@ -165,6 +183,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
   const [ingredients, setIngredients] = useState<DbIngredient[]>(
     propIngredients || INITIAL_DB_INGREDIENTS
   );
+  const [inventoryRefreshError, setInventoryRefreshError] = useState<string | null>(null);
   const [formulas, setFormulas] = useState<DbFormula[]>(propFormulas || []);
   const [formulaDetails, setFormulaDetails] = useState<DbFormulaDetail[]>(
     propFormulaDetails || []
@@ -225,6 +244,40 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
   React.useEffect(() => {
     if (propIngredients) setIngredients(propIngredients);
   }, [propIngredients]);
+
+  React.useEffect(() => {
+    if (activeTab !== 'inventory') return;
+    let active = true;
+    let refreshing = false;
+    const refreshInventory = async () => {
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        const rows = await backendApi.getIngredients();
+        if (!active) return;
+        setIngredients(rows.map(toDbIngredient));
+        onIngredientCatalogRefresh?.(rows);
+        setInventoryRefreshError(null);
+      } catch (error) {
+        console.error('Failed to refresh ingredient stock:', error);
+        if (active) {
+          setInventoryRefreshError(
+            `Could not refresh ingredient stock: ${error instanceof Error ? error.message : 'Unexpected error'}.`
+          );
+        }
+      } finally {
+        refreshing = false;
+      }
+    };
+    void refreshInventory();
+    const refreshTimer = window.setInterval(() => {
+      void refreshInventory();
+    }, 10000);
+    return () => {
+      active = false;
+      window.clearInterval(refreshTimer);
+    };
+  }, [activeTab, onIngredientCatalogRefresh]);
 
   React.useEffect(() => {
     if (propFormulas) setFormulas(propFormulas);
@@ -895,43 +948,48 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
       name: ing.name,
       category: ing.category,
       stock_qty: ing.stock_qty,
-      description: 'Hand-selected artisanal distillation harvested at peak bloom.',
+      description: ing.description || 'Hand-selected artisanal distillation harvested at peak bloom.',
       isPopular: false,
     });
     setIsIngredientModalOpen(true);
   };
 
-  const handleSaveIngredient = (e: React.FormEvent) => {
+  const handleSaveIngredient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ingredientForm.name.trim()) return;
 
-    let updated: DbIngredient[];
-    if (editingIngredient) {
-      updated = ingredients.map((i) =>
-        i.ingredient_id === editingIngredient.ingredient_id
-          ? {
-              ...i,
-              name: ingredientForm.name.trim(),
-              category: ingredientForm.category,
-              stock_qty: Number(ingredientForm.stock_qty),
-            }
-          : i
-      );
-      showToast(`Ingredient "${ingredientForm.name}" updated.`);
-    } else {
-      const nextId =
-        ingredients.length > 0 ? Math.max(...ingredients.map((i) => i.ingredient_id)) + 1 : 1;
-      const newIng: DbIngredient = {
-        ingredient_id: nextId,
-        name: ingredientForm.name.trim(),
-        category: ingredientForm.category,
-        stock_qty: Number(ingredientForm.stock_qty),
-      };
-      updated = [...ingredients, newIng];
-      showToast(`New ingredient "${ingredientForm.name}" added to catalog.`);
+    const request = {
+      name: ingredientForm.name.trim(),
+      scentFamily: ingredientForm.category,
+      description: ingredientForm.description.trim() || ingredientForm.name.trim(),
+      available: editingIngredient?.available ?? true,
+      stockMl: Number(ingredientForm.stock_qty),
+    };
+    setIsSavingAdmin(true);
+    let saved: ApiIngredient;
+    try {
+      saved = editingIngredient
+        ? await backendApi.updateIngredient(editingIngredient.ingredient_id, request)
+        : await backendApi.createIngredient(request);
+    } catch (error) {
+      console.error('Failed to save ingredient:', error);
+      showToast(`Could not save ingredient: ${error instanceof Error ? error.message : 'Unexpected error'}.`);
+      return;
+    } finally {
+      setIsSavingAdmin(false);
     }
 
+    const savedIngredient = toDbIngredient(saved);
+    const updated = editingIngredient
+      ? ingredients.map((ingredient) =>
+          ingredient.ingredient_id === saved.id ? savedIngredient : ingredient
+        )
+      : [...ingredients, savedIngredient];
     setIngredients(updated);
+    onIngredientSaved?.(saved);
+    showToast(editingIngredient
+      ? `Ingredient "${saved.name}" updated.`
+      : `New ingredient "${saved.name}" added to catalog.`);
 
     // Also sync with propScentFamilies if provided
     if (propScentFamilies && onUpdateScentFamilies) {
@@ -980,11 +1038,19 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
     setIsIngredientModalOpen(false);
   };
 
-  const handleDeleteIngredient = (ingredientId: number) => {
+  const handleDeleteIngredient = async (ingredientId: number) => {
     const target = ingredients.find((i) => i.ingredient_id === ingredientId);
     if (!target) return;
+    try {
+      await backendApi.deleteIngredient(ingredientId);
+    } catch (error) {
+      console.error('Failed to delete ingredient:', error);
+      showToast(`Could not delete ingredient: ${error instanceof Error ? error.message : 'Unexpected error'}.`);
+      return;
+    }
     const updated = ingredients.filter((i) => i.ingredient_id !== ingredientId);
     setIngredients(updated);
+    onIngredientDeleted?.(ingredientId);
 
     // Sync removal from propScentFamilies
     if (propScentFamilies && onUpdateScentFamilies) {
@@ -2340,6 +2406,11 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
         {/* ========================================================================= */}
         {activeTab === 'inventory' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            {inventoryRefreshError && (
+              <div role="alert" className="border border-red-300 bg-red-50 px-4 py-3 text-xs text-red-800">
+                {inventoryRefreshError}
+              </div>
+            )}
             
             {/* Header with Add Buttons */}
             <div className="bg-[#FBF7F0] border border-[#DAD1C5] p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -2351,7 +2422,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
                   Scent Categories &amp; Botanical Ingredients
                 </h2>
                 <p className="text-xs text-[#6B6166] mt-1 max-w-xl">
-                  Add new scent categories or ingredients, edit extraction details, adjust warehouse stock, or remove discontinued scents. All modifications dynamically update the customer library.
+                  Add new scent categories or ingredients, edit extraction details, adjust ingredient stock in milliliters, or remove discontinued scents. Stock refreshes automatically while this tab is open.
                 </p>
               </div>
 
@@ -2392,7 +2463,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
                       <th className="py-3 px-4">ID</th>
                       <th className="py-3 px-4">Botanical Name</th>
                       <th className="py-3 px-4">Category</th>
-                      <th className="py-3 px-4">Stock Qty</th>
+                      <th className="py-3 px-4">Stock (ml)</th>
                       <th className="py-3 px-4">Status</th>
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
@@ -2413,7 +2484,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
                         </td>
                         <td className="py-3 px-4">
                           <span className="font-mono text-xs font-medium">
-                            {ing.stock_qty}
+                            {ing.stock_qty.toFixed(3)} ml
                           </span>
                         </td>
                         <td className="py-3 px-4">
@@ -3071,11 +3142,12 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
 
                 <div>
                   <label className="block text-xs uppercase tracking-wider font-semibold text-[#28192A] mb-1">
-                    Stock Quantity (Units)
+                    Stock (ml)
                   </label>
                   <input
                     type="number"
                     min={0}
+                    step={0.001}
                     value={ingredientForm.stock_qty}
                     onChange={(e) =>
                       setIngredientForm({ ...ingredientForm, stock_qty: Number(e.target.value) })
