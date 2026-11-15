@@ -98,6 +98,7 @@ export type ViewMode =
 // Relational Database Diagram Entities
 export interface DbUser {
   id: number;
+  authUserId?: string;
   name: string;
   email: string;
   phone: string;

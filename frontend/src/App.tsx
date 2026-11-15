@@ -452,6 +452,7 @@ export default function App() {
             setDbUsers((current) => [
               ...savedOrders.map(({ row, adminId }) => ({
                 id: adminId,
+                authUserId: row.userId,
                 name: row.customerName,
                 email: row.customerEmail,
                 phone: row.customerPhone,
