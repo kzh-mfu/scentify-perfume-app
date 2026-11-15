@@ -888,6 +888,18 @@ export default function App() {
                 setAuthModalMode('signup');
                 setAuthModalOpen(true);
               } else {
+                setOrder((previous) => ({
+                  ...previous,
+                  orderId: createOrderNumber(),
+                  items: [],
+                  paymentSlipUrl: undefined,
+                  status: 'awaiting_confirmation',
+                  subtotal: 0,
+                  shipping: 0,
+                  tax: 0,
+                  discount: 0,
+                  total: 0,
+                }));
                 navigateTo('review-order');
               }
             }}
