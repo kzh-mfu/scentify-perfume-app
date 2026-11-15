@@ -188,6 +188,20 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
 
     return Array.from(usersByEmail.values());
   }, [users]);
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
+  const filteredMembers = useMemo(() => {
+    const query = memberSearchQuery.trim().toLowerCase();
+    if (!query) return uniqueUsers;
+    const phoneQuery = query.replace(/\D/g, '');
+
+    return uniqueUsers.filter((user) => {
+      const matchesText = [user.name, user.email, user.phone, String(user.id)]
+        .some((value) => value.toLowerCase().includes(query));
+      const matchesPhoneDigits = phoneQuery.length > 0 &&
+        user.phone.replace(/\D/g, '').includes(phoneQuery);
+      return matchesText || matchesPhoneDigits;
+    });
+  }, [uniqueUsers, memberSearchQuery]);
 
   // Dynamic modules state
   const [bottles, setBottles] = useState<BottleOption[]>(propBottles || INITIAL_BOTTLE_OPTIONS);
@@ -2523,13 +2537,26 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
         {/* ========================================================================= */}
         {activeTab === 'users' && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="bg-[#FBF7F0] border border-[#DAD1C5] p-5 shadow-xs">
-              <h3 className="font-serif text-2xl text-[#28192A]">
-                Studio Members &amp; Registered Clients ({uniqueUsers.length})
-              </h3>
-              <p className="text-xs text-[#6B6166] mt-1">
-                Directory of customer accounts, delivery addresses, and customer profiles.
-              </p>
+            <div className="bg-[#FBF7F0] border border-[#DAD1C5] p-5 shadow-xs flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+              <div>
+                <h3 className="font-serif text-2xl text-[#28192A]">
+                  Studio Members &amp; Registered Clients ({filteredMembers.length}{memberSearchQuery.trim() ? ` of ${uniqueUsers.length}` : ''})
+                </h3>
+                <p className="text-xs text-[#6B6166] mt-1">
+                  Directory of customer accounts, delivery addresses, and customer profiles.
+                </p>
+              </div>
+              <div className="relative w-full md:max-w-sm">
+                <Search className="w-4 h-4 text-[#6B6166] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="search"
+                  aria-label="Search members"
+                  placeholder="Search by name, email, phone or user ID"
+                  value={memberSearchQuery}
+                  onChange={(event) => setMemberSearchQuery(event.target.value)}
+                  className="w-full bg-[#FBF7F0] border border-[#DAD1C5] pl-9 pr-4 py-2 text-xs text-[#28192A] focus:outline-none focus:border-[#C9A25C]"
+                />
+              </div>
             </div>
 
             <div className="bg-[#FBF7F0] border border-[#DAD1C5] overflow-hidden shadow-xs">
@@ -2546,7 +2573,13 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#DAD1C5]/40 font-light">
-                    {uniqueUsers.map((u) => (
+                    {filteredMembers.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-[#6B6166]">
+                          No members match this search.
+                        </td>
+                      </tr>
+                    ) : filteredMembers.map((u) => (
                       <tr key={u.id} className="hover:bg-[#FBF7F0]/60 transition-colors">
                         <td className="py-3.5 px-4 font-mono font-medium text-[#28192A]">
                           #{u.id}
