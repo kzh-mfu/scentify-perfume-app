@@ -81,6 +81,18 @@ export const backendApi = {
   // New perfume-business entities (backend V3 migration)
   getBottles: () => request<ApiBottle[]>('/api/bottles'),
   getIngredients: () => request<ApiIngredient[]>('/api/ingredients'),
+  createIngredient: (ingredient: Omit<ApiIngredient, 'id'>) =>
+    request<ApiIngredient>('/api/ingredients', {
+      method: 'POST',
+      body: JSON.stringify(ingredient),
+    }),
+  updateIngredient: (id: number, ingredient: Omit<ApiIngredient, 'id'>) =>
+    request<ApiIngredient>(`/api/ingredients/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(ingredient),
+    }),
+  deleteIngredient: (id: number) =>
+    request<void>(`/api/ingredients/${id}`, { method: 'DELETE' }),
   createBottle: (bottle: Omit<ApiBottle, 'bottleId'>) => request<ApiBottle>('/api/bottles', {
     method: 'POST', body: JSON.stringify({ size: bottle.size, bottleType: bottle.bottleType, price: bottle.price, available: bottle.available, description: bottle.description }),
   }),

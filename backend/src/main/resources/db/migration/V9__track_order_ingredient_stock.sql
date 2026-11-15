@@ -1,0 +1,3 @@
+ALTER TABLE orders
+  ADD COLUMN stock_deductions TEXT NULL,
+  ADD COLUMN stock_restored BOOLEAN NOT NULL DEFAULT FALSE;

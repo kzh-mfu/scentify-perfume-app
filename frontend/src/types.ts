@@ -158,6 +158,8 @@ export interface DbIngredient {
   name: string;
   category: string;
   stock_qty: number;
+  description?: string;
+  available?: boolean;
 }
 
 export interface DbBottle {
@@ -260,7 +262,7 @@ export interface ApiBottle {
   bottleId: number; size: number; bottleType: string; price: number; available: boolean; description?: string | null;
 }
 export interface ApiIngredient {
-  id: number; name: string; scentFamily: string; description: string; available: boolean;
+  id: number; name: string; scentFamily: string; description: string; available: boolean; stockMl: number;
 }
 export interface ApiFormulaDetail {
   formulaDetailId: number; ingredientId: number; ingredientName: string;

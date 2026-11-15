@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -33,6 +34,9 @@ public class Ingredient {
 
   @Column(nullable = false)
   private boolean available = true;
+
+  @Column(name = "stock_ml", nullable = false, precision = 12, scale = 3)
+  private BigDecimal stockMl = new BigDecimal("100.000");
 
   @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
   private LocalDateTime createdAt;
@@ -69,6 +73,12 @@ public class Ingredient {
   public void setAvailable(boolean available) { 
     this.available = available; 
     }
+
+  public BigDecimal getStockMl() { return stockMl; }
+
+  public void setStockMl(BigDecimal stockMl) {
+    this.stockMl = stockMl;
+  }
 
   public LocalDateTime getCreatedAt() { return createdAt; }
 }

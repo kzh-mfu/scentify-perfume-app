@@ -7,12 +7,15 @@ package com.scentify.api;
 import com.scentify.domain.Ingredient;
 import com.scentify.repository.IngredientRepository;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/ingredients")
@@ -37,8 +40,12 @@ public class IngredientController {
   @ResponseStatus(HttpStatus.CREATED)
   public IngredientResponse create(Authentication authentication, @Valid @RequestBody IngredientRequest request) {
     currentUser.requireStaff(authentication);
-    return response(ingredients.save(new Ingredient(request.name(), request.scentFamily(),
-        request.description(), request.available())));
+    Ingredient ingredient = new Ingredient(request.name(), request.scentFamily(),
+        request.description(), request.available());
+    if (request.stockMl() != null) {
+      ingredient.setStockMl(request.stockMl());
+    }
+    return response(ingredients.save(ingredient));
   }
 
   @PutMapping("/{id}")
@@ -51,6 +58,9 @@ public class IngredientController {
     ingredient.setScentFamily(request.scentFamily());
     ingredient.setDescription(request.description());
     ingredient.setAvailable(request.available());
+    if (request.stockMl() != null) {
+      ingredient.setStockMl(request.stockMl());
+    }
     return response(ingredients.save(ingredient));
   }
 
@@ -66,15 +76,23 @@ public class IngredientController {
 
   private IngredientResponse response(Ingredient ingredient) {
     return new IngredientResponse(ingredient.getId(), ingredient.getName(), ingredient.getScentFamily(),
-        ingredient.getDescription(), ingredient.isAvailable());
+        ingredient.getDescription(), ingredient.isAvailable(), ingredient.getStockMl());
   }
 
   public record IngredientRequest(
       @NotBlank String name,
       @NotBlank String scentFamily,
       @NotBlank String description,
-      boolean available
+      boolean available,
+      @DecimalMin("0.000") @Digits(integer = 9, fraction = 3) BigDecimal stockMl
   ) {}
 
-  public record IngredientResponse(Long id, String name, String scentFamily, String description, boolean available) {}
+  public record IngredientResponse(
+      Long id,
+      String name,
+      String scentFamily,
+      String description,
+      boolean available,
+      BigDecimal stockMl
+  ) {}
 }
