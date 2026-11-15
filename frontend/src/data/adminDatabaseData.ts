@@ -1,6 +1,6 @@
 /*
  * Team member: Ei Thandar Kyaw (6831502020)
- * Frontend tasks: admin dashboard seed data for staff, orders, and management views.
+ * Frontend tasks: remaining admin ingredient inventory and customization defaults.
  */
 import {
   DbUser,
@@ -13,9 +13,7 @@ import {
   DbBottle,
   DbOrderItem,
   EnrichedOrder,
-  BottleOption,
   CustomizationRule,
-  MasterFormula,
   AdminStaffUser,
 } from '../types';
 
@@ -44,186 +42,17 @@ export const INITIAL_DB_INGREDIENTS: DbIngredient[] = [
   { ingredient_id: 18, name: 'Mint', category: 'Fresh', stock_qty: 76 },
 ];
 
-export const INITIAL_DB_BOTTLES: DbBottle[] = [
-  { bottle_id: 1, size: 50, price: 1680 },
-  { bottle_id: 2, size: 100, price: 2580 },
-  { bottle_id: 3, size: 30, price: 522 },
-];
-
-export const INITIAL_DB_FORMULAS: DbFormula[] = [
-  { formula_id: 101, formula_name: 'Golden Dawn (Bergamot · Jasmine · Sandalwood)', created_at: '2026-10-24T09:15:00Z' },
-  { formula_id: 102, formula_name: 'Imperial Oud (Lemon · Rose · Oud)', created_at: '2026-10-25T11:30:00Z' },
-  { formula_id: 103, formula_name: 'Botanical Solitude (Grapefruit · Lavender · Cedarwood)', created_at: '2026-10-26T14:20:00Z' },
-  { formula_id: 104, formula_name: 'Siam Bloom (Orange · Ylang Ylang · Amber)', created_at: '2026-10-27T10:05:00Z' },
-  { formula_id: 105, formula_name: 'Highland Serenity (Green Tea · Mint · Vetiver)', created_at: '2026-10-28T08:40:00Z' },
-];
-
-export const INITIAL_DB_FORMULA_DETAILS: DbFormulaDetail[] = [
-  // Formula 101
-  { formula_detail_id: 1, formula_id: 101, ingredient_id: 1 },
-  { formula_detail_id: 2, formula_id: 101, ingredient_id: 6 },
-  { formula_detail_id: 3, formula_id: 101, ingredient_id: 9 },
-  // Formula 102
-  { formula_detail_id: 4, formula_id: 102, ingredient_id: 2 },
-  { formula_detail_id: 5, formula_id: 102, ingredient_id: 5 },
-  { formula_detail_id: 6, formula_id: 102, ingredient_id: 12 },
-  // Formula 103
-  { formula_detail_id: 7, formula_id: 103, ingredient_id: 3 },
-  { formula_detail_id: 8, formula_id: 103, ingredient_id: 8 },
-  { formula_detail_id: 9, formula_id: 103, ingredient_id: 10 },
-  // Formula 104
-  { formula_detail_id: 10, formula_id: 104, ingredient_id: 4 },
-  { formula_detail_id: 11, formula_id: 104, ingredient_id: 7 },
-  { formula_detail_id: 12, formula_id: 104, ingredient_id: 16 },
-  // Formula 105
-  { formula_detail_id: 13, formula_id: 105, ingredient_id: 17 },
-  { formula_detail_id: 14, formula_id: 105, ingredient_id: 18 },
-  { formula_detail_id: 15, formula_id: 105, ingredient_id: 11 },
-];
-
-export const INITIAL_DB_SHIPPINGS: DbShipping[] = [
-  {
-    shipping_id: 501,
-    shipping_fee: 0,
-    tracking_number: 'TH-DHL-984210',
-    courier_name: 'DHL Express',
-    shipping_address: '88 Sukhumvit Soi 55, Thong Lo, Watthana, Bangkok 10110',
-  },
-  {
-    shipping_id: 502,
-    shipping_fee: 50,
-    tracking_number: 'KERRY-CM-47219',
-    courier_name: 'Kerry Express',
-    shipping_address: '42 Nimmanahaeminda Rd, Suthep, Mueang Chiang Mai 50200',
-  },
-  {
-    shipping_id: 503,
-    shipping_fee: 0,
-    tracking_number: 'PENDING-DISPATCH',
-    courier_name: 'Flash Express',
-    shipping_address: '15/2 Silom Rd, Suriyawong, Bang Rak, Bangkok 10500',
-  },
-  {
-    shipping_id: 504,
-    shipping_fee: 0,
-    tracking_number: 'TH-DHL-984402',
-    courier_name: 'DHL Express',
-    shipping_address: '109 Beach Road, Patong, Kathu, Phuket 83150',
-  },
-  {
-    shipping_id: 505,
-    shipping_fee: 50,
-    tracking_number: 'AWAITING_VERIFICATION',
-    courier_name: 'DHL Express',
-    shipping_address: '88 Sukhumvit Soi 55, Thong Lo, Bangkok 10110',
-  },
-];
-
-export const INITIAL_DB_PAYMENTS: DbPayment[] = [
-  {
-    payment_id: 301,
-    order_id: 1001,
-    qr_receipt_url: '/assets/botanicals/woody.png',
-    status: 'verified',
-    verified_at: '2026-10-24T10:00:00Z',
-  },
-  {
-    payment_id: 302,
-    order_id: 1002,
-    qr_receipt_url: '/assets/botanicals/floral.png',
-    status: 'verified',
-    verified_at: '2026-10-25T12:05:00Z',
-  },
-  {
-    payment_id: 303,
-    order_id: 1003,
-    qr_receipt_url: '/assets/botanicals/citrus.png',
-    status: 'pending',
-    verified_at: undefined,
-  },
-  {
-    payment_id: 304,
-    order_id: 1004,
-    qr_receipt_url: '/assets/botanicals/sweet.png',
-    status: 'verified',
-    verified_at: '2026-10-27T10:30:00Z',
-  },
-  {
-    payment_id: 305,
-    order_id: 1005,
-    qr_receipt_url: '',
-    status: 'pending',
-    verified_at: undefined,
-  },
-];
-
-export const INITIAL_DB_ORDERS: DbOrder[] = [
-  {
-    order_id: 1001,
-    shipping_id: 501,
-    user_id: 1,
-    order_date: '2026-10-24T09:20:00Z',
-    status: 'completed',
-    total_price: 1680,
-    prep_photo_url: '/assets/botanicals/custom_bottle.png',
-  },
-  {
-    order_id: 1002,
-    shipping_id: 502,
-    user_id: 2,
-    order_date: '2026-10-25T11:45:00Z',
-    status: 'completed',
-    total_price: 2630, // 2580 + 50 shipping
-    prep_photo_url: '/assets/botanicals/custom_bottle.png',
-  },
-  {
-    order_id: 1003,
-    shipping_id: 503,
-    user_id: 3,
-    order_date: '2026-10-26T14:35:00Z',
-    status: 'processing',
-    total_price: 3360, // Two 50ml bottles
-    prep_photo_url: '/assets/botanicals/custom_bottle.png',
-  },
-  {
-    order_id: 1004,
-    shipping_id: 504,
-    user_id: 4,
-    order_date: '2026-10-27T10:15:00Z',
-    status: 'completed',
-    total_price: 2580,
-    prep_photo_url: '/assets/botanicals/custom_bottle.png',
-  },
-  {
-    order_id: 1005,
-    shipping_id: 505,
-    user_id: 1,
-    order_date: '2026-10-28T09:00:00Z',
-    status: 'pending',
-    total_price: 1730, // 1680 + 50 shipping
-    prep_photo_url: '',
-  },
-];
-
-export const INITIAL_DB_ORDER_ITEMS: DbOrderItem[] = [
-  { order_item_id: 801, formula_detail_id: 1, order_id: 1001, bottle_id: 1, qty: 1 },
-  { order_item_id: 802, formula_detail_id: 4, order_id: 1002, bottle_id: 2, qty: 1 },
-  { order_item_id: 803, formula_detail_id: 7, order_id: 1003, bottle_id: 1, qty: 2 },
-  { order_item_id: 804, formula_detail_id: 10, order_id: 1004, bottle_id: 2, qty: 1 },
-  { order_item_id: 805, formula_detail_id: 13, order_id: 1005, bottle_id: 1, qty: 1 },
-];
-
 // Helper to assemble full relational order graphs
 export function buildEnrichedOrders(
-  orders: DbOrder[] = INITIAL_DB_ORDERS,
+  orders: DbOrder[] = [],
   users: DbUser[] = INITIAL_DB_USERS,
-  shippings: DbShipping[] = INITIAL_DB_SHIPPINGS,
-  payments: DbPayment[] = INITIAL_DB_PAYMENTS,
-  orderItems: DbOrderItem[] = INITIAL_DB_ORDER_ITEMS,
-  formulas: DbFormula[] = INITIAL_DB_FORMULAS,
-  formulaDetails: DbFormulaDetail[] = INITIAL_DB_FORMULA_DETAILS,
+  shippings: DbShipping[] = [],
+  payments: DbPayment[] = [],
+  orderItems: DbOrderItem[] = [],
+  formulas: DbFormula[] = [],
+  formulaDetails: DbFormulaDetail[] = [],
   ingredients: DbIngredient[] = INITIAL_DB_INGREDIENTS,
-  bottles: DbBottle[] = INITIAL_DB_BOTTLES
+  bottles: DbBottle[] = []
 ): EnrichedOrder[] {
   return orders.map((order) => {
     const user = users.find((u) => u.id === order.user_id) || {
@@ -317,36 +146,6 @@ export function buildEnrichedOrders(
   });
 }
 
-export const INITIAL_BOTTLE_OPTIONS: BottleOption[] = [
-  {
-    bottle_id: 1,
-    size: '50 ml',
-    volume: 50,
-    price: 1680,
-    bottleType: 'Classic Flacon',
-    inStock: true,
-    description: 'Signature cylindrical flacon with brushed gold collar and natural atomiser pump.',
-  },
-  {
-    bottle_id: 2,
-    size: '100 ml',
-    volume: 100,
-    price: 2580,
-    bottleType: 'Grand Flacon',
-    inStock: true,
-    description: 'Generous heavy-base crystal glass flacon for the dedicated signature scent collector.',
-  },
-  {
-    bottle_id: 3,
-    size: '30 ml',
-    volume: 30,
-    price: 522,
-    bottleType: 'Travel Atomizer',
-    inStock: true,
-    description: 'Compact hand-finished pocket vial for journeys and bespoke layering.',
-  },
-];
-
 export const INITIAL_CUSTOMIZATION_RULES: CustomizationRule[] = [
   {
     id: 'rule-max-notes',
@@ -391,64 +190,6 @@ export const INITIAL_CUSTOMIZATION_RULES: CustomizationRule[] = [
       familyB: 'Amber',
       reason: 'Dual resin density may overpower top notes.',
     },
-  },
-];
-
-export const INITIAL_MASTER_FORMULAS: MasterFormula[] = [
-  {
-    id: 101,
-    name: 'Golden Dawn',
-    topNote: 'Bergamot',
-    heartNote: 'Jasmine',
-    baseNote: 'Sandalwood',
-    recommendedBottle: '50 ml',
-    active: true,
-    description: 'Luminous Italian bergamot meeting twilight-harvested Thai Sambac jasmine and smooth Mysore sandalwood.',
-    created_at: '2026-10-24T09:15:00Z',
-  },
-  {
-    id: 102,
-    name: 'Imperial Oud',
-    topNote: 'Lemon',
-    heartNote: 'Rose',
-    baseNote: 'Oud',
-    recommendedBottle: '100 ml',
-    active: true,
-    description: 'Regal Damascena rose enveloped in rare smoky Trat agarwood with a sparkling Amalfi lemon facet.',
-    created_at: '2026-10-25T11:30:00Z',
-  },
-  {
-    id: 103,
-    name: 'Botanical Solitude',
-    topNote: 'Grapefruit',
-    heartNote: 'Lavender',
-    baseNote: 'Cedarwood',
-    recommendedBottle: '50 ml',
-    active: true,
-    description: 'High-altitude French lavender with crisp ruby grapefruit over grounding Himalayan cedar.',
-    created_at: '2026-10-26T14:20:00Z',
-  },
-  {
-    id: 104,
-    name: 'Siam Bloom',
-    topNote: 'Orange',
-    heartNote: 'Ylang Ylang',
-    baseNote: 'Amber',
-    recommendedBottle: '50 ml',
-    active: true,
-    description: 'Sun-drenched tropical ylang-ylang warmed with honeyed amber and sweet Mediterranean orange.',
-    created_at: '2026-10-27T10:05:00Z',
-  },
-  {
-    id: 105,
-    name: 'Highland Serenity',
-    topNote: 'Mint',
-    heartNote: 'Green Tea',
-    baseNote: 'Vetiver',
-    recommendedBottle: '50 ml',
-    active: true,
-    description: 'Crisp spearmint and steeped sencha green tea anchored in earthy Javanese vetiver root.',
-    created_at: '2026-10-28T08:40:00Z',
   },
 ];
 

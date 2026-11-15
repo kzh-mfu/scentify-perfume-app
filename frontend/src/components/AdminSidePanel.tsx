@@ -68,18 +68,9 @@ import {
   Ingredient,
 } from '../types';
 import {
-  INITIAL_DB_ORDERS,
   INITIAL_DB_USERS,
-  INITIAL_DB_SHIPPINGS,
-  INITIAL_DB_PAYMENTS,
   INITIAL_DB_INGREDIENTS,
-  INITIAL_DB_FORMULAS,
-  INITIAL_DB_FORMULA_DETAILS,
-  INITIAL_DB_BOTTLES,
-  INITIAL_DB_ORDER_ITEMS,
-  INITIAL_BOTTLE_OPTIONS,
   INITIAL_CUSTOMIZATION_RULES,
-  INITIAL_MASTER_FORMULAS,
   INITIAL_ADMIN_USERS,
   buildEnrichedOrders,
 } from '../data/adminDatabaseData';
@@ -110,7 +101,7 @@ interface AdminSidePanelProps {
   rules?: CustomizationRule[];
   onUpdateRules?: (rules: CustomizationRule[]) => void;
   masterFormulas?: MasterFormula[];
-  onUpdateMasterFormulas?: (formulas: MasterFormula[]) => void;
+  onUpdateMasterFormulas?: (formulas: MasterFormula[]) => Promise<void>;
   adminStaffUsers?: AdminStaffUser[];
   onUpdateAdminStaffUsers?: (admins: AdminStaffUser[]) => void;
 
@@ -162,20 +153,18 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
   >('sales');
 
   // Relational Database State
-  const [orders, setOrders] = useState<DbOrder[]>(propOrders || INITIAL_DB_ORDERS);
+  const [orders, setOrders] = useState<DbOrder[]>(propOrders || []);
   const [users, setUsers] = useState<DbUser[]>(propUsers || INITIAL_DB_USERS);
-  const [shippings, setShippings] = useState<DbShipping[]>(propShippings || INITIAL_DB_SHIPPINGS);
-  const [payments, setPayments] = useState<DbPayment[]>(propPayments || INITIAL_DB_PAYMENTS);
+  const [shippings, setShippings] = useState<DbShipping[]>(propShippings || []);
+  const [payments, setPayments] = useState<DbPayment[]>(propPayments || []);
   const [ingredients, setIngredients] = useState<DbIngredient[]>(
     propIngredients || INITIAL_DB_INGREDIENTS
   );
-  const [formulas, setFormulas] = useState<DbFormula[]>(propFormulas || INITIAL_DB_FORMULAS);
+  const [formulas, setFormulas] = useState<DbFormula[]>(propFormulas || []);
   const [formulaDetails, setFormulaDetails] = useState<DbFormulaDetail[]>(
-    propFormulaDetails || INITIAL_DB_FORMULA_DETAILS
+    propFormulaDetails || []
   );
-  const [orderItems, setOrderItems] = useState<DbOrderItem[]>(
-    propOrderItems || INITIAL_DB_ORDER_ITEMS
-  );
+  const [orderItems, setOrderItems] = useState<DbOrderItem[]>(propOrderItems || []);
   const uniqueUsers = React.useMemo(() => {
     const usersByEmail = new Map<string, DbUser>();
 
@@ -204,11 +193,9 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
   }, [uniqueUsers, memberSearchQuery]);
 
   // Dynamic modules state
-  const [bottles, setBottles] = useState<BottleOption[]>(propBottles || INITIAL_BOTTLE_OPTIONS);
+  const [bottles, setBottles] = useState<BottleOption[]>(propBottles || []);
   const [rules, setRules] = useState<CustomizationRule[]>(propRules || INITIAL_CUSTOMIZATION_RULES);
-  const [masterFormulas, setMasterFormulas] = useState<MasterFormula[]>(
-    propMasterFormulas || INITIAL_MASTER_FORMULAS
-  );
+  const [masterFormulas, setMasterFormulas] = useState<MasterFormula[]>(propMasterFormulas || []);
   const [adminStaffUsers, setAdminStaffUsers] = useState<AdminStaffUser[]>(
     propAdminStaffUsers || INITIAL_ADMIN_USERS
   );
@@ -233,6 +220,14 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
   React.useEffect(() => {
     if (propIngredients) setIngredients(propIngredients);
   }, [propIngredients]);
+
+  React.useEffect(() => {
+    if (propFormulas) setFormulas(propFormulas);
+  }, [propFormulas]);
+
+  React.useEffect(() => {
+    if (propFormulaDetails) setFormulaDetails(propFormulaDetails);
+  }, [propFormulaDetails]);
 
   React.useEffect(() => {
     if (propBottles) setBottles(propBottles);
@@ -773,17 +768,28 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
     showToast('Customization rule deleted.');
   };
 
-  const handleToggleFormula = (formulaId: number) => {
+  const persistMasterFormulas = async (updated: MasterFormula[]): Promise<boolean> => {
+    try {
+      await onUpdateMasterFormulas?.(updated);
+      setMasterFormulas(updated);
+      return true;
+    } catch (error) {
+      console.error('Failed to save master formulas:', error);
+      showToast(error instanceof Error ? error.message : 'Formula changes could not be saved.');
+      return false;
+    }
+  };
+
+  const handleToggleFormula = async (formulaId: number) => {
     const updated = masterFormulas.map((f) =>
       f.id === formulaId ? { ...f, active: !f.active } : f
     );
-    setMasterFormulas(updated);
-    onUpdateMasterFormulas?.(updated);
+    if (!await persistMasterFormulas(updated)) return;
     const target = updated.find((f) => f.id === formulaId);
     showToast(`Formula "${target?.name}" is now ${target?.active ? 'AVAILABLE' : 'DEACTIVATED'}.`);
   };
 
-  const handleSaveFormula = (e: React.FormEvent) => {
+  const handleSaveFormula = async (e: React.FormEvent) => {
     e.preventDefault();
     let updated: MasterFormula[];
     if (editingFormula) {
@@ -801,7 +807,6 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
             }
           : f
       );
-      showToast(`Formula "${formulaForm.name}" updated.`);
     } else {
       const nextId =
         masterFormulas.length > 0
@@ -819,18 +824,19 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
         created_at: new Date().toISOString(),
       };
       updated = [...masterFormulas, newF];
-      showToast(`Master Formula "${formulaForm.name}" created.`);
     }
-    setMasterFormulas(updated);
-    onUpdateMasterFormulas?.(updated);
+    if (!await persistMasterFormulas(updated)) return;
+    showToast(editingFormula
+      ? `Formula "${formulaForm.name}" updated.`
+      : `Master Formula "${formulaForm.name}" created.`);
     setIsFormulaModalOpen(false);
   };
 
-  const handleDeleteFormula = (formulaId: number) => {
-    const updated = masterFormulas.filter((f) => f.id !== formulaId);
-    setMasterFormulas(updated);
-    onUpdateMasterFormulas?.(updated);
-    showToast('Master Formula removed.');
+  const handleDeleteFormula = async (formulaId: number) => {
+    const updated = masterFormulas.map((formula) =>
+      formula.id === formulaId ? { ...formula, active: false } : formula
+    );
+    if (await persistMasterFormulas(updated)) showToast('Master Formula deactivated.');
   };
 
   // -------------------------------------------------------------
@@ -2275,7 +2281,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
                         className="px-2.5 py-1 text-xs text-red-600 hover:bg-red-50 border border-red-200 flex items-center gap-1"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                        <span>Delete</span>
+                        <span>Deactivate</span>
                       </button>
                     </div>
                   </div>

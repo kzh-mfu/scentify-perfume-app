@@ -5,7 +5,6 @@
 import React, { useState } from 'react';
 import { CheckCircle2, MessageSquare, ArrowRight, ShieldCheck, Sparkles, Edit3 } from 'lucide-react';
 import { Composition, ViewMode, CartItem, BottleOption } from '../types';
-import { INITIAL_BOTTLE_OPTIONS } from '../data/adminDatabaseData';
 
 interface ReviewFragranceViewProps {
   composition: Composition;
@@ -20,7 +19,7 @@ export const ReviewFragranceView: React.FC<ReviewFragranceViewProps> = ({
   onConfirmAndShip,
   onRequestChange,
   onNavigate,
-  bottles = INITIAL_BOTTLE_OPTIONS,
+  bottles = [],
 }) => {
   const activeBottles = bottles.filter((b) => b.inStock);
   const defaultSize =

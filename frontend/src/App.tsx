@@ -60,9 +60,7 @@ import {
 import {
   INITIAL_DB_USERS,
   INITIAL_DB_INGREDIENTS,
-  INITIAL_BOTTLE_OPTIONS,
   INITIAL_CUSTOMIZATION_RULES,
-  INITIAL_MASTER_FORMULAS,
   INITIAL_ADMIN_USERS,
 } from './data/adminDatabaseData';
 
@@ -151,7 +149,7 @@ function toBottleOption(bottle: ApiBottle): BottleOption {
     price: Number(bottle.price),
     bottleType: bottle.bottleType,
     inStock: bottle.available,
-    description: bottle.description,
+    description: bottle.description || undefined,
   };
 }
 
@@ -173,7 +171,18 @@ function toSavedFormula(formula: ApiFormula): MasterFormula {
     baseNote: note('base', 2),
     active: formula.active,
     description: formula.description || '',
-    created_at: formula.createdAt,
+    created_at: formula.createdAt || undefined,
+  };
+}
+
+function toMasterFormula(formula: ApiFormula, bottles: BottleOption[]): MasterFormula {
+  const saved = toSavedFormula(formula);
+  return {
+    ...saved,
+    id: formula.formulaId,
+    recommendedBottle: bottles.find(
+      (bottle) => bottle.bottle_id === formula.recommendedBottleId
+    )?.size,
   };
 }
 
@@ -212,12 +221,13 @@ export default function App() {
   const [dbFormulaDetails, setDbFormulaDetails] = useState<DbFormulaDetail[]>([]);
   const [dbOrderItems, setDbOrderItems] = useState<DbOrderItem[]>([]);
 
-  // Dynamic Admin Management State (Persisted in localStorage)
-  const [bottles, setBottles] = useState<BottleOption[]>(INITIAL_BOTTLE_OPTIONS);
+  // Backend catalog state and local-only customization rules
+  const [bottles, setBottles] = useState<BottleOption[]>([]);
   const [ingredients, setIngredients] = useState<ApiIngredient[]>([]);
   const [savedFormulas, setSavedFormulas] = useState<MasterFormula[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [formulaLoadError, setFormulaLoadError] = useState<string | null>(null);
+  const [masterFormulaLoadError, setMasterFormulaLoadError] = useState<string | null>(null);
 
   const [scentFamilies, setScentFamilies] = useState<ScentFamily[]>(() => {
     try {
@@ -237,14 +247,7 @@ export default function App() {
     }
   });
 
-  const [masterFormulas, setMasterFormulas] = useState<MasterFormula[]>(() => {
-    try {
-      const raw = localStorage.getItem('scentify_master_formulas');
-      return raw ? JSON.parse(raw) : INITIAL_MASTER_FORMULAS;
-    } catch {
-      return INITIAL_MASTER_FORMULAS;
-    }
-  });
+  const [masterFormulas, setMasterFormulas] = useState<MasterFormula[]>([]);
 
   const [adminStaffUsers, setAdminStaffUsers] = useState<AdminStaffUser[]>(() => {
     try {
@@ -310,13 +313,59 @@ export default function App() {
     }
   };
 
-  const handleUpdateMasterFormulas = (newFormulas: MasterFormula[]) => {
-    setMasterFormulas(newFormulas);
-    try {
-      localStorage.setItem('scentify_master_formulas', JSON.stringify(newFormulas));
-    } catch (e) {
-      console.error('Failed to save master formulas to storage:', e);
+  const handleUpdateMasterFormulas = async (newFormulas: MasterFormula[]): Promise<void> => {
+    const previousIds = new Set(masterFormulas.map((formula) => formula.id));
+    const nextIds = new Set(newFormulas.map((formula) => formula.id));
+    const savedRows: ApiFormula[] = [];
+    const payloadFor = (formula: MasterFormula) => {
+      const noteNames = [formula.topNote, formula.heartNote, formula.baseNote];
+      const noteTypes = ['top', 'heart', 'base'] as const;
+      const details = noteNames.map((name, index) => {
+        const ingredient = ingredients.find(
+          (entry) => normalizeIngredientName(entry.name) === normalizeIngredientName(name)
+        );
+        if (!ingredient) {
+          throw new Error(`Ingredient "${name}" is not available in the backend catalog.`);
+        }
+        return { ingredientId: ingredient.id, noteType: noteTypes[index] };
+      });
+      const recommendedBottleId = bottles.find(
+        (bottle) => bottle.size === formula.recommendedBottle
+      )?.bottle_id;
+      if (formula.recommendedBottle && !recommendedBottleId) {
+        throw new Error(`Bottle "${formula.recommendedBottle}" is not available in the backend catalog.`);
+      }
+      return {
+        formulaName: formula.name,
+        description: formula.description,
+        active: formula.active,
+        recommendedBottleId,
+        details,
+      };
+    };
+
+    for (const formula of masterFormulas) {
+      if (!nextIds.has(formula.id)) await backendApi.deleteMasterFormula(formula.id);
     }
+    for (const formula of newFormulas) {
+      const payload = payloadFor(formula);
+      if (previousIds.has(formula.id)) {
+        savedRows.push(await backendApi.updateMasterFormula(formula.id, payload));
+      } else {
+        savedRows.push(await backendApi.createMasterFormula(payload));
+      }
+    }
+    setMasterFormulas(savedRows.map((formula) => toMasterFormula(formula, bottles)));
+    setDbFormulas(savedRows.map((formula) => ({
+      formula_id: formula.formulaId,
+      formula_name: formula.formulaName,
+      created_at: formula.createdAt || '',
+    })));
+    setDbFormulaDetails(savedRows.flatMap((formula) => formula.details.map((detail) => ({
+      formula_detail_id: detail.formulaDetailId,
+      formula_id: formula.formulaId,
+      ingredient_id: detail.ingredientId,
+    }))));
   };
 
   const handleUpdateAdminStaffUsers = (newAdmins: AdminStaffUser[]) => {
@@ -344,30 +393,60 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
-    if (!authenticatedUser) {
-      setBottles(INITIAL_BOTTLE_OPTIONS);
-      setIngredients([]);
-      setCatalogError(null);
-      return () => { active = false; };
-    }
     setBottles([]);
+    setMasterFormulas([]);
     setIngredients([]);
+    setMasterFormulaLoadError(null);
 
     const loadCatalog = async () => {
       const failures: string[] = [];
       try {
         const bottleRows = await backendApi.getBottles();
-        if (active) setBottles(bottleRows.map(toBottleOption));
+        const savedBottles = bottleRows.map(toBottleOption);
+        if (active) setBottles(savedBottles);
+        try {
+          const formulaRows = isAdminUser
+            ? await backendApi.getManageMasterFormulas()
+            : await backendApi.getMasterFormulas();
+          if (active) {
+            setMasterFormulas(formulaRows.map((formula) => toMasterFormula(formula, savedBottles)));
+            setDbFormulas(formulaRows.map((formula) => ({
+              formula_id: formula.formulaId,
+              formula_name: formula.formulaName,
+              created_at: formula.createdAt || '',
+            })));
+            setDbFormulaDetails(formulaRows.flatMap((formula) => formula.details.map((detail) => ({
+              formula_detail_id: detail.formulaDetailId,
+              formula_id: formula.formulaId,
+              ingredient_id: detail.ingredientId,
+            }))));
+            setMasterFormulaLoadError(null);
+          }
+        } catch (error) {
+          console.error('Failed to load master formulas:', error);
+          if (active) {
+            setMasterFormulaLoadError(
+              `Could not load master formulas: ${error instanceof Error ? error.message : 'Unexpected error'}.`
+            );
+          }
+        }
       } catch (error) {
         console.error('Failed to load bottle catalog:', error);
         failures.push(`bottles: ${error instanceof Error ? error.message : 'Unexpected error'}`);
+        if (active) {
+          setMasterFormulaLoadError(
+            `Could not load master formulas: ${error instanceof Error ? error.message : 'Unexpected error'}.`
+          );
+        }
       }
-      try {
-        const ingredientRows = await backendApi.getIngredients();
-        if (active) setIngredients(ingredientRows);
-      } catch (error) {
-        console.error('Failed to load ingredients:', error);
-        failures.push(`ingredients: ${error instanceof Error ? error.message : 'Unexpected error'}`);
+      if (authenticatedUser) {
+        try {
+          const ingredientRows = await backendApi.getIngredients();
+          if (active) setIngredients(ingredientRows);
+        } catch (error) {
+          console.error('Failed to load ingredients:', error);
+          failures.push(`ingredients: ${error instanceof Error ? error.message : 'Unexpected error'}`);
+        }
       }
       if (active) {
         setCatalogError(failures.length ? `Could not load backend catalog (${failures.join('; ')}).` : null);
@@ -375,7 +454,7 @@ export default function App() {
     };
     void loadCatalog();
     return () => { active = false; };
-  }, [authenticatedUser?.id]);
+  }, [authenticatedUser?.id, isAdminUser]);
 
   useEffect(() => {
     let active = true;
@@ -596,7 +675,7 @@ export default function App() {
               order_id: payment.orderId,
               qr_receipt_url: payment.receiptUrl || '',
               status: payment.status,
-              verified_at: payment.verifiedAt,
+              verified_at: payment.verifiedAt || undefined,
             })));
             setDbShippings(shippingRows.map((shipping) => ({
               shipping_id: shipping.shippingId,
@@ -853,7 +932,7 @@ export default function App() {
         ? {
             ...entry,
             status: verifiedPayment.status,
-            verified_at: verifiedPayment.verifiedAt,
+            verified_at: verifiedPayment.verifiedAt || undefined,
             qr_receipt_url: verifiedPayment.receiptUrl || entry.qr_receipt_url,
           }
         : entry
@@ -939,7 +1018,7 @@ export default function App() {
           ? {
               ...payment,
               status: verified.status,
-              verified_at: verified.verifiedAt,
+              verified_at: verified.verifiedAt || undefined,
               qr_receipt_url: verified.receiptUrl || payment.qr_receipt_url,
             }
           : payment
@@ -1102,7 +1181,7 @@ export default function App() {
             bottles={bottles}
             rules={rules}
             formulas={[...savedFormulas, ...masterFormulas]}
-            catalogError={catalogError || formulaLoadError}
+            catalogError={catalogError || formulaLoadError || masterFormulaLoadError}
           />
         )}
 

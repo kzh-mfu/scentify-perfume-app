@@ -90,6 +90,30 @@ export const backendApi = {
   getMyFormulas: () => request<ApiFormula[]>('/api/formulas'),
   createFormula: (formula: { formulaName: string; description?: string; details: { ingredientId: number; noteType: 'top' | 'heart' | 'base'; percentage?: number }[] }) =>
     request<ApiFormula>('/api/formulas', { method: 'POST', body: JSON.stringify(formula) }),
+  getMasterFormulas: () => request<ApiFormula[]>('/api/formulas/catalog'),
+  createMasterFormula: (formula: {
+    formulaName: string;
+    description?: string;
+    active: boolean;
+    recommendedBottleId?: number;
+    details: { ingredientId: number; noteType: 'top' | 'heart' | 'base'; percentage?: number }[];
+  }) => request<ApiFormula>('/api/formulas/catalog', {
+    method: 'POST',
+    body: JSON.stringify(formula),
+  }),
+  getManageMasterFormulas: () => request<ApiFormula[]>('/api/formulas/catalog/manage'),
+  updateMasterFormula: (id: number, formula: {
+    formulaName: string;
+    description?: string;
+    active: boolean;
+    recommendedBottleId?: number;
+    details: { ingredientId: number; noteType: 'top' | 'heart' | 'base'; percentage?: number }[];
+  }) => request<ApiFormula>(`/api/formulas/catalog/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(formula),
+  }),
+  deleteMasterFormula: (id: number) =>
+    request<void>(`/api/formulas/catalog/${id}`, { method: 'DELETE' }),
   getPayments: () => request<ApiPayment[]>('/api/payments'),
   createPayment: (payment: { orderId: number; paymentMethod: string; receiptUrl?: string; transactionReference?: string }) =>
     request<ApiPayment>('/api/payments', { method: 'POST', body: JSON.stringify(payment) }),
