@@ -87,6 +87,8 @@ interface AdminSidePanelProps {
   adminUser?: string | null;
   orders?: DbOrder[];
   users?: DbUser[];
+  ordersLoadError?: string | null;
+  membersLoadError?: string | null;
   shippings?: DbShipping[];
   payments?: DbPayment[];
   ingredients?: DbIngredient[];
@@ -123,6 +125,8 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
   adminUser = 'Scentify Studio Master Perfumer',
   orders: propOrders,
   users: propUsers,
+  ordersLoadError,
+  membersLoadError,
   shippings: propShippings,
   payments: propPayments,
   ingredients: propIngredients,
@@ -264,6 +268,34 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
     setActiveTab('messages');
   };
 
+  const handleSelectOrder = async (order: EnrichedOrder) => {
+    setSelectedOrder(order);
+    setReceiptError(null);
+    setShippingForm({
+      courier: order.shipping.courier_name,
+      tracking: order.shipping.tracking_number,
+    });
+
+    if (!order.payment.payment_id) return;
+
+    setReceiptLoading(true);
+    try {
+      const { receiptUrl } = await backendApi.getPaymentReceipt(order.payment.payment_id);
+      setSelectedOrder((current) =>
+        current?.order.order_id === order.order.order_id
+          ? {
+              ...current,
+              payment: { ...current.payment, qr_receipt_url: receiptUrl || '' },
+            }
+          : current
+      );
+    } catch (error) {
+      setReceiptError(error instanceof Error ? error.message : 'Could not load the payment slip.');
+    } finally {
+      setReceiptLoading(false);
+    }
+  };
+
   // Orders Filter & Modal State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<
@@ -273,6 +305,8 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
     'all'
   );
   const [selectedOrder, setSelectedOrder] = useState<EnrichedOrder | null>(null);
+  const [receiptLoading, setReceiptLoading] = useState(false);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
   const [chatTarget, setChatTarget] = useState<{ id: string; name: string } | null>(null);
   const [isEditingShipping, setIsEditingShipping] = useState(false);
   const [shippingForm, setShippingForm] = useState<{ courier: string; tracking: string }>({
@@ -1827,6 +1861,11 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
             </div>
 
             {/* Orders list */}
+            {ordersLoadError && (
+              <p className="mb-4 border border-red-300 bg-red-50 p-3 text-xs text-red-800" role="alert">
+                {ordersLoadError}
+              </p>
+            )}
             <div className="bg-[#FBF7F0] border border-[#DAD1C5] overflow-hidden shadow-xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
@@ -1846,7 +1885,9 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
                     {filteredOrders.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="py-12 text-center text-[#6B6166]">
-                          No orders found matching the filter criteria.
+                          {ordersLoadError
+                            ? 'Orders could not be loaded.'
+                            : 'No orders found matching the filter criteria.'}
                         </td>
                       </tr>
                     ) : (
@@ -1915,13 +1956,7 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
                                 Message
                               </button>
                               <button
-                                onClick={() => {
-                                  setSelectedOrder(eo);
-                                  setShippingForm({
-                                    courier: eo.shipping.courier_name,
-                                    tracking: eo.shipping.tracking_number,
-                                  });
-                                }}
+                                onClick={() => void handleSelectOrder(eo)}
                                 className="px-2 py-1 bg-[#28192A] hover:bg-[#3D2540] text-[#FBF7F0] text-[10px] uppercase font-mono transition-colors"
                               >
                                 View
@@ -2548,6 +2583,11 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
               </div>
             </div>
 
+            {membersLoadError && (
+              <p className="border border-red-300 bg-red-50 p-3 text-xs text-red-800" role="alert">
+                {membersLoadError}
+              </p>
+            )}
             <div className="bg-[#FBF7F0] border border-[#DAD1C5] overflow-hidden shadow-xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
@@ -2565,7 +2605,9 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
                     {filteredMembers.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="py-8 text-center text-[#6B6166]">
-                          No members match this search.
+                          {membersLoadError
+                            ? 'Members could not be loaded.'
+                            : 'No members match this search.'}
                         </td>
                       </tr>
                     ) : filteredMembers.map((u) => (
@@ -3375,6 +3417,14 @@ export const AdminSidePanel: React.FC<AdminSidePanelProps> = ({
             </div>
 
             {/* PromptPay Slip Section */}
+            {receiptLoading && (
+              <p className="mb-5 text-xs text-[#6B6166]" role="status">Loading payment slip...</p>
+            )}
+            {receiptError && (
+              <p className="mb-5 border border-red-300 bg-red-50 p-3 text-xs text-red-800" role="alert">
+                Could not load payment slip: {receiptError}
+              </p>
+            )}
             {selectedOrder.payment.qr_receipt_url && (
               <div className="border border-[#DAD1C5] p-4 mb-5 bg-[#FBF7F0]">
                 <span className="text-xs font-semibold uppercase text-[#28192A] block mb-2">
