@@ -18,10 +18,10 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           {/* Logo & Subtitle */}
           <div className="flex flex-col">
             <span className="font-serif text-2xl tracking-[0.3em] font-light text-[#FFFDF8]">
-              L O R E M
+              Scentify
             </span>
             <span className="text-[9px] tracking-[0.4em] text-[#DAD1C5]/60 uppercase mt-1">
-              P E R F U M E &nbsp; S T U D I O
+              PERFUME STUDIO
             </span>
           </div>
 
@@ -89,7 +89,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
         {/* Bottom copyright and legal */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-[#DAD1C5]/50 gap-4">
-          <p>© 2026 Scentify Perfume Studio. All rights reserved.</p>
+          <p>© 2026 Scentify PERFUME STUDIO. All rights reserved.</p>
           <div className="flex space-x-6">
             <a href="#privacy" onClick={(e) => e.preventDefault()} className="hover:text-[#FFFDF8] transition-colors">
               Privacy Policy
