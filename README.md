@@ -8,15 +8,25 @@ Cloud deployment.
 
 ## Course submission
 
-### Team members
+### Group members
 
-| Student ID | Name |
-| --- | --- |
-| 6831503006 | Htoo Myat Aung |
-| 6831503011 | Kyaw Zin Htike |
-| 6831502020 | Ei Thandar Kyaw |
-| 6831503029 | Thuta Naing |
-| 6831503087 | Saw Keh Blu |
+```
+6831503006  Htoo Myat Aung
+6831503011  Kyaw Zin Htike
+6831502020  Ei Thandar Kyaw
+6831503029  Thuta Naing
+6831503087  Saw Keh Blu
+```
+
+### Member responsibilities
+
+| Student ID | Name            | Features                                                                                                                                                                                      |
+| ---------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 6831503006 | Htoo Myat Aung  | Profile entity, repository & controller; Health check API; Local security config; NavBar & Profile views; IndexedDB client persistence                                                        |
+| 6831503011 | Kyaw Zin Htike  | Ingredient entity, repository & controller; Staff administration; Firebase Auth & Security config; Search modal & Ingredient library views; CI/CD pipelines (Cloud Run & Firebase Hosting)    |
+| 6831502020 | Ei Thandar Kyaw | Order & OrderItem entities, Order repository & controller; Admin dashboard (sales reports, order/payment management, bottle/scent category/ingredient management, formula & rules management) |
+| 6831503029 | Thuta Naing     | Custom perfume builder (ScentifyView); Fragrance review view; Shopping cart & checkout views; Perfume data catalogs                                                                           |
+| 6831503087 | Saw Keh Blu     | ChatMessage entity, repository & controller; Customer care view; Admin chat view; Home, About, Journal & Footer views                                                                         |
 
 ### Repository
 
@@ -32,20 +42,20 @@ contribution credit.
 
 ## Assignment requirements
 
-| Requirement | Scentify implementation |
-| --- | --- |
-| Backend | Spring Boot REST API |
-| Persistence | Spring Data JPA and Hibernate |
-| Database | MySQL locally or Google Cloud SQL for MySQL |
-| Authentication | Google Identity Platform |
-| Frontend | React, TypeScript, Vite, Tailwind CSS |
-| Related entities | Profile, Ingredient, Order, OrderItem, ChatMessage |
-| Listing/searching | Ingredient catalog and ingredient search |
-| Creating | Ingredients, orders, order items, profiles, and chat messages |
-| Updating | Profiles, ingredients, order status, and payment status |
-| Deleting | Ingredients |
+| Requirement               | Scentify implementation                                           |
+| ------------------------- | ----------------------------------------------------------------- |
+| Backend                   | Spring Boot REST API                                              |
+| Persistence               | Spring Data JPA and Hibernate                                     |
+| Database                  | MySQL locally or Google Cloud SQL for MySQL                       |
+| Authentication            | Google Identity Platform                                          |
+| Frontend                  | React, TypeScript, Vite, Tailwind CSS                             |
+| Related entities          | Profile, Ingredient, Order, OrderItem, ChatMessage                |
+| Listing/searching         | Ingredient catalog and ingredient search                          |
+| Creating                  | Ingredients, orders, order items, profiles, and chat messages     |
+| Updating                  | Profiles, ingredients, order status, and payment status           |
+| Deleting                  | Ingredients                                                       |
 | Related entity management | Orders contain order items; profiles own orders and chat messages |
-| Deployment | Google Cloud Run and Cloud SQL |
+| Deployment                | Google Cloud Run and Cloud SQL                                    |
 
 ## Main entities
 
@@ -93,18 +103,18 @@ backend/Dockerfile
 
 ## Frontend pages
 
-| Route | Feature |
-| --- | --- |
-| `/` | Home page |
-| `/ingredients` | Ingredient library |
-| `/scentify` | Custom perfume builder |
-| `/scentify/review` | Fragrance review |
-| `/cart` | Shopping cart |
-| `/checkout` | Order review |
-| `/checkout/payment` | Payment |
-| `/profile` | Profile and order history |
-| `/customer-care` | Customer support |
-| `/admin` | Staff and order administration |
+| Route               | Feature                        |
+| ------------------- | ------------------------------ |
+| `/`                 | Home page                      |
+| `/ingredients`      | Ingredient library             |
+| `/scentify`         | Custom perfume builder         |
+| `/scentify/review`  | Fragrance review               |
+| `/cart`             | Shopping cart                  |
+| `/checkout`         | Order review                   |
+| `/checkout/payment` | Payment                        |
+| `/profile`          | Profile and order history      |
+| `/customer-care`    | Customer support               |
+| `/admin`            | Staff and order administration |
 
 ## REST API
 
@@ -297,7 +307,7 @@ https://your-cloud-run-url/api/health
 Expected response:
 
 ```json
-{"status":"ok"}
+{ "status": "ok" }
 ```
 
 ### Frontend deployment

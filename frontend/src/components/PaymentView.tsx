@@ -2,7 +2,7 @@
  * Team member: Ei Thandar Kyaw (6831502020)
  * Frontend tasks: order submission, payment-slip upload, and payment status display.
  */
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Upload,
   CheckCircle2,
@@ -14,39 +14,47 @@ import {
   ShieldCheck,
   Send,
   Sparkles,
-  ExternalLink,
-  ChevronRight,
   PackageCheck,
-  X
-} from 'lucide-react';
-import { OrderDetails, CartItem, ViewMode } from '../types';
+  X,
+} from "lucide-react";
+import { OrderDetails, CartItem, ViewMode } from "../types";
 
 function getPlaceOrderErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
 
-  if (typeof error === 'object' && error !== null) {
+  if (typeof error === "object" && error !== null) {
     const details = error as Record<string, unknown>;
-    const message = typeof details.message === 'string' ? details.message : null;
-    const code = typeof details.code === 'string' ? details.code : null;
-    const hint = typeof details.hint === 'string' ? details.hint : null;
-    const extraDetails = typeof details.details === 'string' ? details.details : null;
-    const diagnostic = [code && `Code: ${code}`, extraDetails, hint && `Hint: ${hint}`]
+    const message =
+      typeof details.message === "string" ? details.message : null;
+    const code = typeof details.code === "string" ? details.code : null;
+    const hint = typeof details.hint === "string" ? details.hint : null;
+    const extraDetails =
+      typeof details.details === "string" ? details.details : null;
+    const diagnostic = [
+      code && `Code: ${code}`,
+      extraDetails,
+      hint && `Hint: ${hint}`,
+    ]
       .filter(Boolean)
-      .join(' ');
+      .join(" ");
 
     if (message) {
       return diagnostic ? `${message} (${diagnostic})` : message;
     }
   }
 
-  return 'An unexpected error occurred while saving the order. Please try again.';
+  return "An unexpected error occurred while saving the order. Please try again.";
 }
 
 interface PaymentViewProps {
   order: OrderDetails;
   items: CartItem[];
   onSlipUploaded?: (fileDataUrl: string) => void;
-  onPlaceOrder?: (payload: { slipUrl: string; orderId: string; total: number }) => Promise<void>;
+  onPlaceOrder?: (payload: {
+    slipUrl: string;
+    orderId: string;
+    total: number;
+  }) => Promise<void>;
   onNavigate: (view: ViewMode) => void;
 }
 
@@ -57,16 +65,18 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
   onPlaceOrder,
   onNavigate,
 }) => {
-  const [uploadedSlip, setUploadedSlip] = useState<string | null>(order.paymentSlipUrl || null);
+  const [uploadedSlip, setUploadedSlip] = useState<string | null>(
+    order.paymentSlipUrl || null,
+  );
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [placeOrderError, setPlaceOrderError] = useState<string | null>(null);
   const [isOrderPlaced, setIsOrderPlaced] = useState(
-    order.status === 'slip_uploaded' || order.status === 'verified'
+    order.status === "slip_uploaded" || order.status === "verified",
   );
   const [previewSlipModal, setPreviewSlipModal] = useState<string | null>(null);
 
   const isSubmittedOrder =
-    order.status === 'slip_uploaded' || order.status === 'verified';
+    order.status === "slip_uploaded" || order.status === "verified";
   const displayedItems = isSubmittedOrder ? order.items : items;
   const subtotal = isSubmittedOrder
     ? order.subtotal
@@ -108,11 +118,13 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
       } else if (onSlipUploaded) {
         onSlipUploaded(uploadedSlip);
       }
-      setIsOrderPlaced(true);
-    } catch (error) {
-      console.error('Failed to place order:', error);
       setIsOrderPlaced(false);
-      setPlaceOrderError(`The order could not be saved: ${getPlaceOrderErrorMessage(error)}`);
+    } catch (error) {
+      console.error("Failed to place order:", error);
+      setIsOrderPlaced(false);
+      setPlaceOrderError(
+        `The order could not be saved: ${getPlaceOrderErrorMessage(error)}`,
+      );
     } finally {
       setIsPlacingOrder(false);
     }
@@ -121,7 +133,6 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
   return (
     <div className="min-h-screen bg-[#FBF7F0] py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        
         {/* Header */}
         <div className="mb-10 pb-6 border-b border-[#DAD1C5]/40 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
@@ -129,21 +140,19 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
               Secure Checkout · Step 3 of 3
             </span>
             <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#28192A]">
-              {isOrderPlaced ? 'Order Confirmation' : 'Complete Your Payment'}
+              {isOrderPlaced ? "Order Confirmation" : "Complete Your Payment"}
             </h1>
             <p className="text-xs sm:text-sm text-[#6B6166] font-light mt-1.5">
               {isOrderPlaced
                 ? `Order #${order.orderId} has been successfully sent to the studio admin panel for verification.`
-                : 'Scan the Thai QR code, attach your payment slip, then click Place Order to send to the admin panel.'}
+                : "Scan the Thai QR code, attach your payment slip, then click Place Order to send to the admin panel."}
             </p>
           </div>
-
         </div>
 
         {/* If Order is already placed, render the comprehensive Confirmation View */}
         {isOrderPlaced ? (
           <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300">
-            
             {/* Status Hero Card */}
             <div className="bg-[#FBF7F0] border border-[#DAD1C5] p-8 sm:p-10 relative overflow-hidden">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-[#DAD1C5]/50">
@@ -161,16 +170,19 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
                       </span>
                     </div>
                     <h2 className="font-serif text-2xl sm:text-3xl text-[#28192A] mt-1">
-                      Thank You, {order.customerName || 'Studio Client'}
+                      Thank You, {order.customerName || "Studio Client"}
                     </h2>
                     <p className="text-xs text-[#6B6166] mt-0.5">
-                      Your order and PromptPay payment slip have been sent directly to the Admin Panel.
+                      Your order and PromptPay payment slip have been sent
+                      directly to the Admin Panel.
                     </p>
                   </div>
                 </div>
 
                 <div className="text-right sm:text-right w-full sm:w-auto p-3 bg-[#FBF7F0] border border-[#DAD1C5]">
-                  <span className="text-[10px] uppercase font-mono text-[#6B6166] block">Total Amount</span>
+                  <span className="text-[10px] uppercase font-mono text-[#6B6166] block">
+                    Total Amount
+                  </span>
                   <span className="font-serif text-2xl text-[#28192A] font-semibold">
                     ฿ {total.toLocaleString()}.00
                   </span>
@@ -182,7 +194,7 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
                 <h3 className="text-[11px] uppercase tracking-widest font-mono text-[#6B6166] mb-4">
                   Order Progression Timeline
                 </h3>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   {/* Step 1 */}
                   <div className="p-3 bg-[#FBF7F0] border border-emerald-300 relative">
@@ -244,7 +256,6 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
 
               {/* Uploaded Slip & Dispatch Preview */}
               <div className="mt-8 pt-6 border-t border-[#DAD1C5]/50 grid grid-cols-1 md:grid-cols-2 gap-6">
-                
                 {/* Uploaded Slip Info */}
                 <div className="p-4 bg-[#FBF7F0] border border-[#DAD1C5] flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -264,7 +275,9 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
                         PromptPay Transfer Slip
                       </p>
                       <button
-                        onClick={() => uploadedSlip && setPreviewSlipModal(uploadedSlip)}
+                        onClick={() =>
+                          uploadedSlip && setPreviewSlipModal(uploadedSlip)
+                        }
                         className="text-[11px] text-[#28192A] underline hover:text-[#C9A25C] flex items-center gap-1 mt-0.5"
                       >
                         <Eye className="w-3 h-3" />
@@ -282,19 +295,24 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
                   <span className="text-[10px] uppercase font-mono text-[#C9A25C] font-bold block mb-1">
                     Shipping Destination
                   </span>
-                  <p className="font-medium text-[#28192A]">{order.customerName}</p>
-                  <p className="text-[#6B6166]">{order.address}, {order.city}, {order.province} {order.postalCode}</p>
-                  <p className="text-[#6B6166]">Contact: {order.phone || 'Recorded'}</p>
+                  <p className="font-medium text-[#28192A]">
+                    {order.customerName}
+                  </p>
+                  <p className="text-[#6B6166]">
+                    {order.address}, {order.city}, {order.province}{" "}
+                    {order.postalCode}
+                  </p>
+                  <p className="text-[#6B6166]">
+                    Contact: {order.phone || "Recorded"}
+                  </p>
                 </div>
-
               </div>
 
               {/* Action Buttons */}
               <div className="mt-8 pt-6 border-t border-[#DAD1C5]/50 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3 w-full sm:w-auto">
-                  
                   <button
-                    onClick={() => onNavigate('chat')}
+                    onClick={() => onNavigate("chat")}
                     className="flex-1 sm:flex-initial px-5 py-3 border border-[#28192A] text-[#28192A] text-xs uppercase tracking-wider hover:bg-[#28192A] hover:text-[#FFFDF8] transition-colors"
                   >
                     Chat with Perfumer
@@ -303,31 +321,27 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
 
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => onNavigate('profile')}
+                    onClick={() => onNavigate("profile")}
                     className="text-xs text-[#6B6166] hover:text-[#28192A] underline"
                   >
                     View in Profile Orders
                   </button>
                   <span className="text-[#DAD1C5]">·</span>
                   <button
-                    onClick={() => onNavigate('home')}
+                    onClick={() => onNavigate("home")}
                     className="text-xs text-[#6B6166] hover:text-[#28192A] underline"
                   >
                     Return to Home
                   </button>
                 </div>
               </div>
-
             </div>
-
           </div>
         ) : (
           /* Normal Payment Flow */
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-            
             {/* Left Column: Thai QR Payment & Slip Attachment with Place Order Button */}
             <div className="lg:col-span-7 space-y-8">
-              
               {/* Pay with Thai QR Card */}
               <div className="bg-[#FBF7F0] border border-[#DAD1C5] p-6 sm:p-8">
                 <span className="text-[10px] tracking-[0.2em] uppercase text-[#6B6166] font-medium block">
@@ -337,7 +351,8 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
                   Pay with Thai QR (PromptPay)
                 </h2>
                 <p className="text-xs text-[#6B6166] font-light mt-1">
-                  Open your Thai mobile banking app (SCB, KBank, Bangkok Bank, Krungthai) and scan the QR code.
+                  Open your Thai mobile banking app (SCB, KBank, Bangkok Bank,
+                  Krungthai) and scan the QR code.
                 </p>
 
                 {/* QR Container */}
@@ -354,7 +369,12 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
                   </div>
 
                   <div className="text-xs text-[#6B6166] mb-4 space-y-0.5 font-mono">
-                    <p>Order <strong className="text-[#28192A]">#{order.orderId}</strong></p>
+                    <p>
+                      Order{" "}
+                      <strong className="text-[#28192A]">
+                        #{order.orderId}
+                      </strong>
+                    </p>
                     <p className="font-sans">Scentify Perfume Studio</p>
                   </div>
 
@@ -368,7 +388,8 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
                   </div>
 
                   <p className="text-[11px] text-[#6B6166] mt-4 font-light max-w-xs leading-relaxed">
-                    Account: <strong>Scentify Perfume Studio Co., Ltd.</strong> · Scan with any Thai banking app.
+                    Account: <strong>Scentify Perfume Studio Co., Ltd.</strong>{" "}
+                    · Scan with any Thai banking app.
                   </p>
                 </div>
 
@@ -383,7 +404,8 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
                     </span>
                   </div>
                   <p className="text-xs text-[#6B6166] mt-0.5 mb-4">
-                    Attach your banking receipt screenshot (JPG, PNG or PDF) to verify payment with our admin team.
+                    Attach your banking receipt screenshot (JPG, PNG or PDF) to
+                    verify payment with our admin team.
                   </p>
 
                   {uploadedSlip ? (
@@ -437,7 +459,10 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
                       {/* Prominent PLACE ORDER BUTTON */}
                       <div className="pt-2">
                         {placeOrderError && (
-                          <p className="mb-3 p-3 bg-rose-50 border border-rose-200 text-xs text-rose-900" role="alert">
+                          <p
+                            className="mb-3 p-3 bg-rose-50 border border-rose-200 text-xs text-rose-900"
+                            role="alert"
+                          >
                             {placeOrderError}
                           </p>
                         )}
@@ -449,17 +474,22 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
                           {isPlacingOrder ? (
                             <>
                               <div className="w-4 h-4 border-2 border-[#C9A25C] border-t-transparent rounded-full animate-spin" />
-                              <span>Sending Order &amp; Slip to Admin Panel...</span>
+                              <span>
+                                Sending Order &amp; Slip to Admin Panel...
+                              </span>
                             </>
                           ) : (
                             <>
                               <Send className="w-4 h-4 text-[#C9A25C] group-hover:translate-x-1 transition-transform" />
-                              <span>Place Order · ฿ {total.toLocaleString()}.00</span>
+                              <span>
+                                Place Order · ฿ {total.toLocaleString()}.00
+                              </span>
                             </>
                           )}
                         </button>
                         <p className="text-[11px] text-center text-[#6B6166] mt-2 font-light">
-                          Clicking "Place Order" transmits all order details and slip to the Admin Panel for review.
+                          Clicking "Place Order" transmits all order details and
+                          slip to the Admin Panel for review.
                         </p>
                       </div>
                     </div>
@@ -468,8 +498,12 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
                       <div className="flex flex-col sm:flex-row gap-4">
                         <label className="flex-1 border-2 border-dashed border-[#DAD1C5] hover:border-[#28192A] p-6 text-center cursor-pointer transition-colors bg-[#FBF7F0]/30 hover:bg-[#FBF7F0]">
                           <Upload className="w-6 h-6 text-[#6B6166] mx-auto mb-2 stroke-[1.5]" />
-                          <span className="text-xs font-medium text-[#28192A] block">+ Choose payment slip</span>
-                          <span className="text-[10px] text-[#6B6166] mt-1 block">Click to upload slip from your device</span>
+                          <span className="text-xs font-medium text-[#28192A] block">
+                            + Choose payment slip
+                          </span>
+                          <span className="text-[10px] text-[#6B6166] mt-1 block">
+                            Click to upload slip from your device
+                          </span>
                           <input
                             type="file"
                             accept="image/*,application/pdf"
@@ -484,8 +518,12 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
                           className="shrink-0 px-5 py-4 border border-[#DAD1C5] bg-[#FBF7F0] text-xs text-[#28192A] hover:bg-[#DAD1C5]/30 transition-colors flex flex-col items-center justify-center text-center cursor-pointer"
                         >
                           <Sparkles className="w-4 h-4 text-[#C9A25C] mb-1" />
-                          <span className="font-serif font-medium">Use Sample Slip</span>
-                          <span className="text-[10px] text-[#6B6166] mt-0.5">Quick Demo Thai QR Receipt</span>
+                          <span className="font-serif font-medium">
+                            Use Sample Slip
+                          </span>
+                          <span className="text-[10px] text-[#6B6166] mt-0.5">
+                            Quick Demo Thai QR Receipt
+                          </span>
                         </button>
                       </div>
 
@@ -495,19 +533,18 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
                         className="w-full py-3.5 bg-[#DAD1C5]/50 text-[#6B6166] text-xs uppercase tracking-wider font-medium cursor-not-allowed flex items-center justify-center gap-2 border border-[#DAD1C5]"
                       >
                         <AlertCircle className="w-4 h-4 text-[#6B6166]" />
-                        <span>Attach Payment Slip Above to Enable "Place Order"</span>
+                        <span>
+                          Attach Payment Slip Above to Enable "Place Order"
+                        </span>
                       </button>
                     </div>
                   )}
                 </div>
-
               </div>
-
             </div>
 
             {/* Right Column: Order Summary & Review Information */}
             <div className="lg:col-span-5 space-y-6">
-              
               <div className="bg-[#FBF7F0] border border-[#DAD1C5] p-6 sm:p-8">
                 <span className="text-[10px] tracking-[0.2em] uppercase text-[#6B6166] font-medium block">
                   ORDER SUMMARY
@@ -518,11 +555,16 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
 
                 <div className="py-4 space-y-4 divide-y divide-[#DAD1C5]/30">
                   {displayedItems.map((item) => (
-                    <div key={item.id} className="pt-3 first:pt-0 flex justify-between items-start text-xs">
+                    <div
+                      key={item.id}
+                      className="pt-3 first:pt-0 flex justify-between items-start text-xs"
+                    >
                       <div>
-                        <h4 className="font-serif text-sm text-[#28192A]">{item.title}</h4>
+                        <h4 className="font-serif text-sm text-[#28192A]">
+                          {item.title}
+                        </h4>
                         <p className="text-[11px] text-[#6B6166]">
-                          {item.details?.size || '50 ml'} · Qty {item.quantity}
+                          {item.details?.size || "50 ml"} · Qty {item.quantity}
                         </p>
                       </div>
                       <span className="font-serif text-sm font-medium text-[#28192A]">
@@ -535,12 +577,14 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
                 <div className="pt-4 border-t border-[#DAD1C5]/50 space-y-2.5 text-xs text-[#6B6166]">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span className="font-medium text-[#28192A]">฿ {subtotal.toLocaleString()}</span>
+                    <span className="font-medium text-[#28192A]">
+                      ฿ {subtotal.toLocaleString()}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Shipping (DHL Express)</span>
                     <span className="text-[#28192A] font-medium">
-                      {shipping === 0 ? 'Complimentary' : `฿ ${shipping}`}
+                      {shipping === 0 ? "Complimentary" : `฿ ${shipping}`}
                     </span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-[#DAD1C5]/40 text-base font-serif text-[#28192A] font-medium">
@@ -556,20 +600,24 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
                     <span>Admin Verification Protocol</span>
                   </div>
                   <p className="text-[#6B6166] font-light leading-relaxed">
-                    Once you attach your slip and click <strong>Place Order</strong>, all order information and receipt are sent to the Admin Panel. The studio administrator reviews the slip and confirms or cancels the order.
+                    Once you attach your slip and click{" "}
+                    <strong>Place Order</strong>, all order information and
+                    receipt are sent to the Admin Panel. The studio
+                    administrator reviews the slip and confirms or cancels the
+                    order.
                   </p>
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-[#DAD1C5]/30 flex flex-col gap-2">
                   <button
-                    onClick={() => onNavigate('review-order')}
+                    onClick={() => onNavigate("review-order")}
                     className="w-full py-2.5 border border-[#DAD1C5] text-xs text-[#28192A] hover:bg-[#DAD1C5]/20 transition-colors flex items-center justify-center gap-1"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     <span>Back to Shipping Address</span>
                   </button>
                   <button
-                    onClick={() => onNavigate('chat')}
+                    onClick={() => onNavigate("chat")}
                     className="text-center text-xs text-[#6B6166] hover:text-[#28192A] py-1"
                   >
                     Need Help? Chat with Perfumer
@@ -580,12 +628,9 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
               <p className="text-[11px] text-[#6B6166] text-center font-light">
                 PromptPay payments are verified by our studio accounting team.
               </p>
-
             </div>
-
           </div>
         )}
-
       </div>
 
       {/* Slip Zoom Modal */}
@@ -599,7 +644,9 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-[#DAD1C5] mb-4">
-              <span className="font-serif text-lg text-[#28192A]">Payment Slip Preview</span>
+              <span className="font-serif text-lg text-[#28192A]">
+                Payment Slip Preview
+              </span>
               <button
                 onClick={() => setPreviewSlipModal(null)}
                 className="p-1 text-[#6B6166] hover:text-[#28192A]"
@@ -623,7 +670,6 @@ export const PaymentView: React.FC<PaymentViewProps> = ({
           </div>
         </div>
       )}
-
     </div>
   );
 };
